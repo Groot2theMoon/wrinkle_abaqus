@@ -21,8 +21,6 @@ tkwargs = {
 }
 
 def run_bo_loop(config):
-    """베이지안 최적화 메인 루프를 실행하는 함수"""
-    
     problem = AbaqusWrinkleFunction(
         negate=True,
         config=config

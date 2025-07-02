@@ -1,4 +1,3 @@
-# abaqus_interface/problem_definition.py
 import os
 import torch
 import subprocess
@@ -32,9 +31,7 @@ class AbaqusWrinkleFunction:
         return X_unnorm
 
     def __call__(self, X_full_norm):
-        # ... (이전 코드의 __call__ 메소드 내용과 거의 동일) ...
-        # 단, 모든 경로와 파라미터는 self.config 객체에서 가져옵니다.
-        # 예: self.config.ABAQUS_EXE_PATH
+        
         if X_full_norm.ndim == 1: 
             X_full_norm = X_full_norm.unsqueeze(0)
         
