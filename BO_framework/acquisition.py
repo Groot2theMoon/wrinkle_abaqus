@@ -1,0 +1,19 @@
+import torch
+from botorch.acquisition.knowledge_gradient import qMultiFidelityKnowledgeGradient
+from botorch.acquisition.utils import project_to_target_fidelity
+
+def mfkg_acq_f(model, train_X, train_Y, cost_utility, config):
+    
+    def project_func(X):
+        return project_to_target_fidelity(X=X, target_fidelities={model.data_fidelities[0]: config.TARGET_FIDELITY_VALUE})
+
+    hf_mask = (train_X[:, model.data_fidelities[0]] == config.TARGET_FIDELITY_VALUE)
+    best_observed_value = train_Y[hf_mask].max() if hf_mask.any() else -torch.inf
+    
+    return qMultiFidelityKnowledgeGradient(
+        model=model,
+        num_fantasies=128, # Can be moved to config
+        current_value=best_observed_value,
+        cost_aware_utility=cost_utility,
+        project=project_func
+    )
