@@ -39,3 +39,5 @@ FALLBACK_COST_HF = 600.0   # 10분
 # --- BoTorch가 사용할 정규화된 경계 (자동 생성) ---
 # 설계 변수 2개 + 충실도 1개 = 3차원
 NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
+
+GRID_RESOLUTION = 10

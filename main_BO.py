@@ -62,7 +62,7 @@ def run_bo_loop(config):
             print("Model initialization failed. Stopping.")
             break
         
-        acqf = mfkg_acq_f(model, train_X, train_Y, cost_aware_utility, config)
+        acqf = mfkg_acq_f(model, train_X, train_Y, cost_aware_utility, config, problem.fidelity_dim_idx)
         
         candidates, _ = optimize_acqf_mixed(
             acq_function=acqf, bounds=config.NORMALIZED_BOUNDS, q=config.BATCH_SIZE,
