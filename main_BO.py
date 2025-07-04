@@ -9,7 +9,7 @@ from botorch.models.cost import AffineFidelityCostModel
 from botorch.acquisition.cost_aware import InverseCostWeightedUtility
 from botorch.optim.optimize import optimize_acqf_mixed
 
-from abaqus_interface.problem_definition import AbaqusWrinkleFunction
+#from abaqus_interface.problem_definition import AbaqusWrinkleFunction
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
 from BO_framework.acquisition import mfkg_acq_f
@@ -20,11 +20,19 @@ tkwargs = {
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
 
+def get_problem_class(class_path_str):
+    try:
+        module_path, class_name = class_path_str.rsplit('.', 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError) as e:
+        raise ImportError(f"Could not import class from path '{class_path_str}': {e}")
+
 def run_bo_loop(config):
-    problem = AbaqusWrinkleFunction(
-        negate=True,
-        config=config
-    )
+
+    print(f" --- Initializing for {config.SimULATION_TOOL.upper()}  --- ")
+    ProblemClass = get_problem_class(config.PROBLEM_CLASS_PATH)
+    problem = ProblemClass(config)
     
     log_data = []
     log_columns = [
@@ -130,6 +138,20 @@ if __name__ == "__main__":
         print(f"Error: Could not import a configuration file named '{args.config}'. Please check the path.")
         exit()
 
-    run_bo_loop(config_module)
+    problem_class_ref = None
+    try:
+        ProblemClass = get_problem_class(config_module.PROBLEM_CLASS_PATH)
+        problem_class_ref = ProblemClass
+
+        run_bo_loop(config_module)
+    
+    except Exception as e:
+        print(f"An error occurred during the BO loop: {e}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        if problem_class_ref and hasattr(problem_class_ref, 'cleanup'):
+            problem_class_ref.cleanup()
 
     print("\nMFBO for ABAQUS Wrinkle Optimization finished.")
