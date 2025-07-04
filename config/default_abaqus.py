@@ -14,7 +14,7 @@ ABAQUS_SCRIPT_FOLDER = PROJECT_ROOT
 ABAQUS_WORKING_DIR = os.path.join(PROJECT_ROOT, "abaqus_workspace")
 
 # --- 분석 파일 ---
-GROUND_TRUTH_FILE = os.path.join(PROJECT_ROOT, "ground_truth.csv")
+#GROUND_TRUTH_FILE = os.path.join(PROJECT_ROOT, "ground_truth.csv")
 
 # --- 설계 변수 경계 ---
 # (종횡비, 두께-폭 비율)
@@ -40,4 +40,8 @@ FALLBACK_COST_HF = 600.0   # 10분
 # 설계 변수 2개 + 충실도 1개 = 3차원
 NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
 
+# --- 분석 파일 이름 ---
+GROUND_TRUTH_FILE_NAME = "ground_truth_abaqus.csv"
+
+# --- 그리드 해상도 ---
 GRID_RESOLUTION = 10

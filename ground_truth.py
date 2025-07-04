@@ -5,14 +5,7 @@ import torch
 import time
 import matplotlib.pyplot as plt
 import importlib
-from abaqus_interface.problem_definition import AbaqusWrinkleFunction
-
-try:
-    config = importlib.import_module("config.default")
-    print("Loaded configuration from config.default")
-except ImportError:
-    print("Error: Could not load config/default.py. Please check the file.")
-    exit()
+import argparse
 
 tkwargs = {
     "dtype": torch.double,
@@ -22,9 +15,17 @@ tkwargs = {
 def normalize(value, bounds):
     return (value - bounds[0]) / (bounds[1] - bounds[0])
 
-def evaluate_point(problem, alpha, th_w_ratio, config_obj):
-    alpha_norm = normalize(alpha, config_obj.ALPHA_BOUNDS)
-    th_w_norm = normalize(th_w_ratio, config_obj.TH_W_RATIO_BOUNDS)
+def get_problem_class(class_path_str):
+    try:
+        module_path, class_name = class_path_str.rsplit('.', 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError) as e:
+        raise ImportError(f"Could not import class from path '{class_path_str}': {e}")
+
+def evaluate_point(problem, alpha, th_w_ratio, config):
+    alpha_norm = normalize(alpha, config.ALPHA_BOUNDS)
+    th_w_norm = normalize(th_w_ratio, config.TH_W_RATIO_BOUNDS)
     X_norm = torch.tensor([[alpha_norm, th_w_norm, 1.0]], **tkwargs)
 
     max_amplitude_tensor, cost_tensor = problem(X_norm)
@@ -77,7 +78,24 @@ def visualize_grid(success_points, failure_points, output_filename="ground_truth
 
 if __name__ == "__main__":
 
-    problem = AbaqusWrinkleFunction(negate=False, config=config)
+    parser = argparse.ArgumentParser(description="Generate ground truth solution space.")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.default_comsol",
+        help="Configuration file to use (e.g., 'config.default_comsol')."
+    )
+    args = parser.parse_args()
+
+    try:
+        config = importlib.import_module(args.config)
+        print(f"Successfully loaded configuration: {args.config}")
+    except ImportError as e:
+        print(f"Error loading configuration '{args.config}': {e}")
+        exit()
+
+    ProblemClass = get_problem_class(config.PROBLEM_CLASS_PATH)
+    problem = ProblemClass(negate=False, config=config)
 
     alpha_vals = np.linspace(config.ALPHA_BOUNDS[0], config.ALPHA_BOUNDS[1], config.GRID_RESOLUTION)
     th_w_ratio_vals = np.linspace(config.TH_W_RATIO_BOUNDS[0], config.TH_W_RATIO_BOUNDS[1], config.GRID_RESOLUTION)
@@ -85,7 +103,7 @@ if __name__ == "__main__":
     success_points, failure_points, file_buffer = [], [], []
     CHUNK_SIZE = 10
     
-    output_file_path = os.path.join(config.PROJECT_ROOT, "ground_truth.csv")
+    output_file_path = os.path.join(config.PROJECT_ROOT, "config.GROUND_TRUTH_FILE_NAME")
     write_header = not os.path.exists(output_file_path)
     total_points = config.GRID_RESOLUTION**2
     start_time = time.time()
@@ -121,6 +139,9 @@ if __name__ == "__main__":
 
     # 시각화 실행
     visualize_grid(success_points, failure_points)
+
+    if hasattr(problem, 'cleanup') and callable(problem.cleanup):
+        problem.cleanup()
     
     total_time = time.time() - start_time
     print(f"\n--- Ground Truth generation complete ---")

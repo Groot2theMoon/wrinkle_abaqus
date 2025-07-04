@@ -1,5 +1,3 @@
-# config/default_comsol.py
-
 import os
 import torch
 
@@ -44,3 +42,9 @@ FALLBACK_COST_HF = 600.0   # 10분
 
 # --- BoTorch가 사용할 정규화된 경계  ---
 NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
+
+# --- 분석 파일 이름 ---
+GROUND_TRUTH_FILE_NAME = "ground_truth_comsol.csv" # ABAQUS와 다른 파일 이름
+
+# --- 그리드 해상도 ---
+GRID_RESOLUTION = 10 
