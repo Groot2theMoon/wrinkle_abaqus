@@ -9,7 +9,6 @@ from botorch.models.cost import AffineFidelityCostModel
 from botorch.acquisition.cost_aware import InverseCostWeightedUtility
 from botorch.optim.optimize import optimize_acqf_mixed
 
-#from abaqus_interface.problem_definition import AbaqusWrinkleFunction
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
 from BO_framework.acquisition import mfkg_acq_f
@@ -33,7 +32,7 @@ def run_bo_loop(config):
     print(f" --- Initializing for {config.SimULATION_TOOL.upper()}  --- ")
     ProblemClass = get_problem_class(config.PROBLEM_CLASS_PATH)
     problem = ProblemClass(config)
-    
+
     log_data = []
     log_columns = [
         "Iteration_Step", "Fidelity_BO", "alpha_actual", "th_w_ratio_actual",

@@ -202,7 +202,7 @@ try
             fprintf('  Error extracting LF (lambda) using mphglobal: %s\n', ME_extract_lf.message);
             output_value = NaN;
         end
-    else % Corresponds to Fidelity 1.0 (High Fidelity - Post-buckling)
+    else % Fidelity 1.0
         model.param.set('alpha', num2str(alpha_val));
         model.param.set('th', ['W*' num2str(th_W_ratio_val)]);
         model.param.set('nominalStrain', sprintf('%f[%%]', target_strain_percentage));
