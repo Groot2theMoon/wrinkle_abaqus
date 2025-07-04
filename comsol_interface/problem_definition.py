@@ -91,7 +91,7 @@ class ComsolProblem:
     @classmethod
     def _start_comsol_server(cls):
         config = cls._config_ref
-        if cls._comsol_server_process in None or cls._comsol_server_process.poll() is not None:
+        if cls._comsol_server_process is None or cls._comsol_server_process.poll() is not None:
             print("Starting COMSOL server...")
             try:
                 cmd = [config.COMSOL_SERVER_EXE, 'mphserver', f"-port {config.COMSOL_SERVER_PORT}"]

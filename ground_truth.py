@@ -26,7 +26,7 @@ def get_problem_class(class_path_str):
 def evaluate_point(problem, alpha, th_w_ratio, config):
     alpha_norm = normalize(alpha, config.ALPHA_BOUNDS)
     th_w_norm = normalize(th_w_ratio, config.TH_W_RATIO_BOUNDS)
-    X_norm = torch.tensor([[alpha_norm, th_w_norm, 1.0]], **tkwargs)
+    X_norm = torch.tensor([[alpha_norm, th_w_norm, 0.0]], **tkwargs)
 
     max_amplitude_tensor, cost_tensor = problem(X_norm)
     

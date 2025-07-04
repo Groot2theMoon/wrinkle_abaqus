@@ -5,7 +5,7 @@ import torch
 # --- 실험 기본 정보 ---
 EXPERIMENT_NAME = "wrinkle_mfbo_default"
 
-# --- 경로 설정 (사용자 환경에 맞게 수정 필요) ---
+# --- 경로 설정  ---
 ABAQUS_EXE_PATH = r"C:\SIMULIA\Commands\abaqus.exe"
 ABAQUS_SCRIPT_NAME = "run_abaqus_analysis.py"
 # __file__을 이용해 현재 config 파일의 위치를 기준으로 경로를 설정
@@ -17,7 +17,6 @@ ABAQUS_WORKING_DIR = os.path.join(PROJECT_ROOT, "abaqus_workspace")
 #GROUND_TRUTH_FILE = os.path.join(PROJECT_ROOT, "ground_truth.csv")
 
 # --- 설계 변수 경계 ---
-# (종횡비, 두께-폭 비율)
 ALPHA_BOUNDS = (1.0, 5.0)
 TH_W_RATIO_BOUNDS = (100.0, 10000.0)
 
@@ -36,7 +35,7 @@ TARGET_FIDELITY_VALUE = 1.0
 FALLBACK_COST_LF = 60.0    # 1분
 FALLBACK_COST_HF = 600.0   # 10분
 
-# --- BoTorch가 사용할 정규화된 경계 (자동 생성) ---
+# --- BoTorch가 사용할 정규화된 경계  ---
 # 설계 변수 2개 + 충실도 1개 = 3차원
 NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
 

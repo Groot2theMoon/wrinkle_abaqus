@@ -12,14 +12,14 @@ COMSOL_SERVER_STARTUP_WAIT_TIME = 40
 # 이 파일의 위치를 기준으로 프로젝트 루트를 찾습니다.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-MATLAB_SCRIPT_PATH = r"C:\Users\user\Desktop\이승원 연참" 
+MATLAB_SCRIPT_PATH = r"C:\Users\user\Desktop\Seungwon\wrinkle_abaqus" 
 COMSOL_MLI_PATH = r"C:\Program Files\COMSOL\COMSOL63\Multiphysics\mli"
 COMSOL_JRE_PATH = r"C:\Program Files\COMSOL\COMSOL63\Multiphysics\java\win64\jre"
 COMSOL_SERVER_EXE = r"C:\Program Files\COMSOL\COMSOL63\Multiphysics\bin\win64\comsol.exe"
 
 # --- 설계 변수 경계 ---
-ALPHA_BOUNDS = (1.0, 5.0)
-TH_W_RATIO_BOUNDS = (100.0, 10000.0) # Wo/to 이므로 1/ratio 값 아님
+ALPHA_BOUNDS = (2.0, 5.0)
+TH_W_RATIO_BOUNDS = (1e-4, 1e-2)
 
 # --- 물리적 파라미터 ---
 TARGET_STRAIN_PERCENTAGE = 20.0
