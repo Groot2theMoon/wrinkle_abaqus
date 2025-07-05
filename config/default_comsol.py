@@ -19,7 +19,7 @@ COMSOL_SERVER_EXE = r"C:\Program Files\COMSOL\COMSOL63\Multiphysics\bin\win64\co
 
 # --- 설계 변수 경계 ---
 ALPHA_BOUNDS = (2.0, 5.0)
-TH_W_RATIO_BOUNDS = (1e-4, 1e-2)
+TH_W_RATIO_BOUNDS = (1e-4, 1e-3)
 
 # --- 물리적 파라미터 ---
 TARGET_STRAIN_PERCENTAGE = 20.0

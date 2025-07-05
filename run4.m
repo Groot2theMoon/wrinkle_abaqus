@@ -81,15 +81,30 @@ try
     model.component('comp1').physics('shell').feature('disp1').set('Direction', {'prescribed'; 'prescribed'; 'prescribed'});
     model.component('comp1').physics('shell').feature('disp1').set('U0', {'nominalStrain*L'; '0'; '0'});
 
-    model.component('comp1').mesh('mesh1').create('map1', 'Map');
-    model.component('comp1').mesh('mesh1').feature('map1').selection.all;
-    model.component('comp1').mesh('mesh1').feature('map1').create('dis1', 'Distribution');
-    model.component('comp1').mesh('mesh1').feature('map1').create('dis2', 'Distribution');
-    model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').selection.set([1 3]); % 예시 경계, 모델에 맞게 수정
-    model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').selection.set([2 7]); % 예시 경계, 모델에 맞게 수정
-    model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').set('numelem', 'numY/2');
-    model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').set('numelem', 'numX/2');
-    model.component('comp1').mesh('mesh1').run;
+
+    %model.component('comp1').mesh('mesh1').create('map1', 'Map');
+    %model.component('comp1').mesh('mesh1').feature('map1').selection.all;
+    %model.component('comp1').mesh('mesh1').feature('map1').create('dis1', 'Distribution');
+    %model.component('comp1').mesh('mesh1').feature('map1').create('dis2', 'Distribution');
+    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').selection.set([1 3]); % 예시 경계, 모델에 맞게 수정
+    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').selection.set([2 7]); % 예시 경계, 모델에 맞게 수정
+    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').set('numelem', 'numY/2');
+    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').set('numelem', 'numX/2');
+    %model.component('comp1').mesh('mesh1').run;
+    % --- 기존 메쉬 코드 전체를 아래 코드로 대체 ---
+
+    mesh1 = model.component('comp1').mesh('mesh1');
+
+    % 1. Free Triangular 메쉬 피처 생성
+    ftri1 = mesh1.create('ftri1', 'FreeTri');
+    ftri1.selection.geom(model.component('comp1').geom('geom1').tag, 2); % 전체 면 선택
+
+    % 2. 메쉬 크기를 제어하는 Size 속성을 FreeTri 피처 내에서 직접 설정
+    %    'hauto'는 1(매우 거침) ~ 9(매우 조밀)
+    ftri1.feature('size').set('hauto', 6); % 'Normal' 사이즈로 설정
+
+    % 3. 메쉬 빌드
+    mesh1.run();
 
     model.study.create('std1');
     model.study('std1').create('stat', 'Stationary');
@@ -223,7 +238,7 @@ try
         model.study('std2').run();
         model.study('std3').run();
         try
-            wrinkle_expr_hf = '0.5*(maxop1(w) - minop1(w))/th';
+            wrinkle_expr_hf = '(maxop1(w) - minop1(w))';
             dataset_tag_for_std3_hf = 'dset4';
 
             all_wrinkle_amplitudes = mphglobal(model, {wrinkle_expr_hf},'dataset', dataset_tag_for_std3_hf,'outersolnum', 'all');
