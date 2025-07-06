@@ -7,19 +7,21 @@ import subprocess
 import signal
 
 class ComsolProblem:
-
+    """
+    COMSOL/MATLAB과의 인터페이스.
+    리소스 관리는 start_resources와 cleanup 클래스 메소드를 통해 명시적으로 이루어집니다.
+    """
     _eng = None
     _comsol_server_process = None
-    _engine_users = 0
-    _config_ref = None
+    _config_ref = None # 설정을 저장할 클래스 변수
 
     def __init__(self, negate=True, config=None):
         if config is None:
             raise ValueError("Configuration object must be provided.")
         
-        if ComsolProblem._engine_users == 0:
+        # 인스턴스가 생성될 때, 클래스 변수에 config가 저장되었는지 확인
+        if ComsolProblem._config_ref is None:
             ComsolProblem._config_ref = config
-        ComsolProblem._engine_users += 1
 
         self.negate = negate
         self.config = config
@@ -28,12 +30,8 @@ class ComsolProblem:
         self.num_design_vars = len(self._bounds)
         self.dim = self.num_design_vars + 1
         self.fidelity_dim_idx = self.num_design_vars
-        
         self.nan_penalty = -1e10 if self.negate else 1e10
         self.target_fidelity_bo = config.TARGET_FIDELITY_VALUE
-
-        ComsolProblem._engine_users += 1
-        self._ensure_server_and_engine_started()
 
     def unnormalize(self, X_norm_design_vars):
         if X_norm_design_vars.ndim == 1:
@@ -89,83 +87,72 @@ class ComsolProblem:
         return objectives, costs
 
     @classmethod
-    def _start_comsol_server(cls):
-        config = cls._config_ref
+    def start_resources(cls, config):
+        """서버와 엔진을 시작합니다. 이미 실행 중이면 아무것도 하지 않습니다."""
+        print("\n" + "="*50)
+        print("      STARTING COMSOL & MATLAB RESOURCES")
+        print("="*50 + "\n")
+        cls._config_ref = config # 항상 최신 config로 업데이트
+        
+        # COMSOL 서버 시작
         if cls._comsol_server_process is None or cls._comsol_server_process.poll() is not None:
-            print("Starting COMSOL server...")
+            print(">>> Starting COMSOL server...")
             try:
-                cmd = [config.COMSOL_SERVER_EXE, 'mphserver', f"-port {config.COMSOL_SERVER_PORT}"]
+                cmd = [config.COMSOL_SERVER_EXE, "mphserver", f"-port{config.COMSOL_SERVER_PORT}"]
                 cls._comsol_server_process = subprocess.Popen(
-                    cmd, 
-                    stdout=subprocess.PIPE, 
-                    stderr=subprocess.PIPE, 
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0,
-                    text=True,
-                    errors='ignore'
+                    text=True, errors='ignore'
                 )
-                print(f"COMSOL server process started (PID: {cls._comsol_server_process.pid}). Waiting...")
+                print(f"    COMSOL server process started (PID: {cls._comsol_server_process.pid}). Waiting for startup...")
                 time.sleep(config.COMSOL_SERVER_STARTUP_WAIT_TIME)
-                print("COMSOL server wait complete")
+                print("    COMSOL server ready.")
             except Exception as e:
                 print(f"FATAL: COMSOL server startup failed: {e}")
-                cls._comsol_server_process = None
                 raise
 
-    @classmethod
-    def _start_matlab_engine_instance(cls):
-        config = cls._config_ref
+        # MATLAB 엔진 시작 및 연결
         if cls._eng is None:
-            print("Starting MATLAB engine...")
-            if os.path.isdir(config.COMSOL_JRE_PATH):
-                os.environ['MATLAB_JAVA'] = config.COMSOL_JRE_PATH
+            print(">>> Starting MATLAB engine...")
             try:
+                if os.path.isdir(config.COMSOL_JRE_PATH):
+                    os.environ['MATLAB_JAVA'] = config.COMSOL_JRE_PATH
                 cls._eng = matlab.engine.start_matlab()
                 cls._eng.addpath(config.MATLAB_SCRIPT_PATH, nargout=0)
-                cls._eng.eval(f"import com.comsol.model.util.*; ModelUtil.connect('localhost', {config.COMSOL_SERVER_PORT});", nargout=0)
-                print("MATLAB connected to COMSOL server.")
+                connect_cmd = f"import com.comsol.model.util.*; ModelUtil.connect('localhost', {config.COMSOL_SERVER_PORT});"
+                cls._eng.eval(connect_cmd, nargout=0)
+                print("    MATLAB engine ready and connected to COMSOL server.")
             except Exception as e:
                 print(f"FATAL: MATLAB/COMSOL connection failed: {e}")
-                if cls._eng: cls._eng.quit()
-                cls._eng = None
+                cls.cleanup() # 실패 시 정리
                 raise
-
-    @classmethod
-    def _ensure_server_and_engine_started(cls):
-        if cls._engine_users > 0:
-            cls._start_comsol_server()
-            cls._start_matlab_engine_instance()
-
+    
     @classmethod
     def cleanup(cls):
-        if cls._engine_users > 0:
-            cls._engine_users -= 1
+        """모든 COMSOL/MATLAB 리소스를 정리합니다."""
+        print("\n" + "="*50)
+        print("      CLEANING UP COMSOL & MATLAB RESOURCES")
+        print("="*50 + "\n")
+        if cls._eng:
+            try:
+                cls._eng.eval("ModelUtil.disconnect;", nargout=0)
+            except Exception: pass
+            finally:
+                cls._eng.quit()
+                cls._eng = None
+                print(">>> MATLAB engine quit.")
 
-        if cls._engine_users == 0:
-            if cls._eng:
-                try:
-                    print("disconnecting MATLAB from COMSOL server...")
-                    cls._eng.eval("ModelUtil.disconnect();", nargout=0)
-                except Exception as e:
-                    print(f"Error during disconnection : {e}")
-                finally:
-                    print("Quitting MATLAB engine...")
-                    cls._eng.quit()
-                    cls._eng = None
-
-            if cls._comsol_server_process and cls._comsol_server_process.poll() is None:
-                print(f"Stopping COMSOL server... (PID: {cls._comsol_server_process.pid})")
-                try:
-                    if os.name == 'nt':
-                        os.kill(cls._comsol_server_process.pid, signal.CTRL_BREAK_EVENT)
-                    else:
-                        cls._comsol_server_process.terminate()
-                    cls._comsol_server_process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    print("COMSOL server stomp timed out, killing process...")
-                    cls._comsol_server_process.kill()
-                except Exception as e:
-                    print(f"Error stopping COMSOL server: {e}")
-                finally:
-                    cls._comsol_server_process = None
-
-            print("COMSOL resources cleaned up.")
+        if cls._comsol_server_process and cls._comsol_server_process.poll() is None:
+            try:
+                if os.name == 'nt':
+                    os.kill(cls._comsol_server_process.pid, signal.CTRL_BREAK_EVENT)
+                else:
+                    cls._comsol_server_process.terminate()
+                cls._comsol_server_process.wait(timeout=15)
+            except Exception:
+                cls._comsol_server_process.kill()
+            finally:
+                cls._comsol_server_process = None
+                print(">>> COMSOL server stopped.")
+        
+        cls._config_ref = None # 참조 정리
