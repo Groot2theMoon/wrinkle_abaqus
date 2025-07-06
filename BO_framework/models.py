@@ -1,4 +1,3 @@
-# bo_framework/models.py
 import torch
 from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
 from botorch.models.transforms.outcome import Standardize

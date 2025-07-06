@@ -1,4 +1,3 @@
-# bo_framework/initial_design.py
 import torch
 import numpy as np
 from scipy.stats.qmc import LatinHypercube

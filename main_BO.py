@@ -29,7 +29,7 @@ def get_problem_class(class_path_str):
 
 def run_bo_loop(config):
 
-    print(f" --- Initializing for {config.SimULATION_TOOL.upper()}  --- ")
+    print(f" --- Initializing for {config.SIMULATION_TOOL.upper()}  --- ")
     ProblemClass = get_problem_class(config.PROBLEM_CLASS_PATH)
     problem = ProblemClass(config)
 

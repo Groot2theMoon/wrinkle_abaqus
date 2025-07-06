@@ -47,4 +47,4 @@ NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
 GROUND_TRUTH_FILE_NAME = "ground_truth_comsol.csv" # ABAQUS와 다른 파일 이름
 
 # --- 그리드 해상도 ---
-GRID_RESOLUTION = 10
+GRID_RESOLUTION = 5

@@ -12,7 +12,7 @@ def mfkg_acq_f(model, train_X, train_Y, cost_utility, config, fidelity_idx):
     
     return qMultiFidelityKnowledgeGradient(
         model=model,
-        num_fantasies=128, # Can be moved to config
+        num_fantasies=128,
         current_value=best_observed_value,
         cost_aware_utility=cost_utility,
         project=project_func
