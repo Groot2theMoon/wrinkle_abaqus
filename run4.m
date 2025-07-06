@@ -82,29 +82,40 @@ try
     model.component('comp1').physics('shell').feature('disp1').set('U0', {'nominalStrain*L'; '0'; '0'});
 
 
-    %model.component('comp1').mesh('mesh1').create('map1', 'Map');
-    %model.component('comp1').mesh('mesh1').feature('map1').selection.all;
-    %model.component('comp1').mesh('mesh1').feature('map1').create('dis1', 'Distribution');
-    %model.component('comp1').mesh('mesh1').feature('map1').create('dis2', 'Distribution');
-    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').selection.set([1 3]); % 예시 경계, 모델에 맞게 수정
-    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').selection.set([2 7]); % 예시 경계, 모델에 맞게 수정
-    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').set('numelem', 'numY/2');
-    %model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').set('numelem', 'numX/2');
-    %model.component('comp1').mesh('mesh1').run;
+    model.component('comp1').mesh('mesh1').create('map1', 'Map');
+    model.component('comp1').mesh('mesh1').feature('map1').selection.all;
+    model.component('comp1').mesh('mesh1').feature('map1').create('dis1', 'Distribution');
+    model.component('comp1').mesh('mesh1').feature('map1').create('dis2', 'Distribution');
+    model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').selection.set([1 3]); % 예시 경계, 모델에 맞게 수정
+    model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').selection.set([2 7]); % 예시 경계, 모델에 맞게 수정
+    model.component('comp1').mesh('mesh1').feature('map1').feature('dis1').set('numelem', 'numY/2');
+    model.component('comp1').mesh('mesh1').feature('map1').feature('dis2').set('numelem', 'numX/2');
+    model.component('comp1').mesh('mesh1').run;
     % --- 기존 메쉬 코드 전체를 아래 코드로 대체 ---
 
-    mesh1 = model.component('comp1').mesh('mesh1');
+    %mesh1 = model.component('comp1').mesh('mesh1');
+    
+    % 1. 메쉬 시퀀스에 직접 'Size' 피처들을 먼저 정의합니다.
+    %    이 피처들은 아직 어떤 메쉬 작업(FreeTri 등)과도 연결되지 않은 상태입니다.
+    
+    % 1-1. 전체 도메인에 적용될 기본 'Size' 피처
+    %size_global = mesh1.create('size_global', 'Size');
+    %size_global.set('hauto', 4); % Coarse
 
-    % 1. Free Triangular 메쉬 피처 생성
-    ftri1 = mesh1.create('ftri1', 'FreeTri');
-    ftri1.selection.geom(model.component('comp1').geom('geom1').tag, 2); % 전체 면 선택
+    % 1-2. 중앙 영역에만 적용될 국소 'Size' 피처
+    %size_local = mesh1.create('size_local', 'Size');
+    %size_local.set('hauto', 6); % Fine
+    %size_local.selection.geom(model.component('comp1').geom('geom1').tag, 2);
+    %L_val = model.param.evaluate('L');
+    %W_val = model.param.evaluate('W');
+    %size_local.selection.byBox([-L_val*0.25, L_val*0.25, -W_val*0.25, W_val*0.25]);
 
-    % 2. 메쉬 크기를 제어하는 Size 속성을 FreeTri 피처 내에서 직접 설정
-    %    'hauto'는 1(매우 거침) ~ 9(매우 조밀)
-    ftri1.feature('size').set('hauto', 6); % 'Normal' 사이즈로 설정
-
-    % 3. 메쉬 빌드
-    mesh1.run();
+    % 2. 실제 메쉬를 생성할 'FreeTri' (자유 삼각형 메쉬) 작업을 마지막에 추가합니다.
+    %    이 작업은 실행될 때, 이전에 정의된 모든 'Size' 피처들을 자동으로 고려합니다.
+    %mesh1.create('ftri1', 'FreeTri');
+    
+    % 3. 메쉬를 빌드합니다.
+    %mesh1.run();
 
     model.study.create('std1');
     model.study('std1').create('stat', 'Stationary');

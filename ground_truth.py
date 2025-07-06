@@ -4,6 +4,7 @@ import os
 import torch
 import time
 import matplotlib.pyplot as plt
+from matplotlib import colors
 import importlib
 import argparse
 
@@ -38,7 +39,7 @@ def evaluate_point(problem, alpha, th_w_ratio, config):
             "alpha": alpha, "th_w_ratio": th_w_ratio,
             "max_amplitude": np.nan,
             "cost_s": cost_item if not np.isnan(cost_item) else np.nan,
-            "status": "Failed: ABAQUS execution error"
+            "status": "Failed"
         }
     else:
         return {
@@ -48,32 +49,57 @@ def evaluate_point(problem, alpha, th_w_ratio, config):
             "status": "Success"
         }
 
-def visualize_grid(success_points, failure_points, output_filename="ground_truth_status.png"):
+def visualize_grid(points_df, fidelity, output_filename="ground_truth_status.png"):
+    if points_df.empty:
+        print("DataFrame is empty, skipping visualization.")
+        return
+
     plt.style.use('seaborn-v0_8-whitegrid')
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(12, 10))
 
-    if success_points:
-        s_alphas = [p["alpha"] for p in success_points]
-        s_ratios = [p["th_w_ratio"] for p in success_points]
-        ax.scatter(s_alphas, s_ratios, c='green', marker='o', s=80, 
-                   label=f'Success ({len(success_points)})', alpha=0.8)
+    success_points = points_df.dropna(subset=['objective'])
+    failure_points = points_df[points_df['objective'].isna()]
 
-    if failure_points:
-        f_alphas = [p["alpha"] for p in failure_points]
-        f_ratios = [p["th_w_ratio"] for p in failure_points]
-        ax.scatter(f_alphas, f_ratios, c='red', marker='x', s=100, 
-                   label=f'Failure ({len(failure_points)})', alpha=1.0)
+    if not success_points.empty:
+        try:
+            pivot_df = success_points.pivot(index='th_w_ratio', columns='alpha', values='objective')
+            X = pivot_df.columns.values
+            Y = pivot_df.index.values
+            Z = pivot_df.values
 
-    ax.set_xlabel('alpha')
-    ax.set_ylabel('Wo/t')
-    ax.set_title('Ground Truth Grid')
+            obj_min, obj_max = success_points['objective'].min(), success_points['objective'].max()
+            norm = None
+            if obj_min > 0 and obj_max / obj_min > 100:
+                norm = colors.LogNorm(vmin=obj_min, vmax=obj_max)
+
+            cp = ax.contourf(X, Y, Z, levels=20, cmap='viridis', norm=norm, alpha=0.9)
+            ax.contour(X, Y, Z, levels=cp.levels, colors='white', linewidths=0.5, alpha=0.7)
+            fig.colorbar(cp, ax=ax, label=f'Objective Value (Fidelity {fidelity})')
+        except Exception as e:
+            print(f"Could not create contour plot, plotting scatter only. Error: {e}")
+
+
+    if not success_points.empty:
+        ax.scatter(success_points['alpha'], success_points['th_w_ratio'], 
+                   c='lime', marker='o', s=50, ec='black', lw=0.5,
+                   label=f'Success ({len(success_points)})', zorder=2)
+
+    if not failure_points.empty:
+        ax.scatter(failure_points['alpha'], failure_points['th_w_ratio'], 
+                   c='red', marker='x', s=100,
+                   label=f'Failure ({len(failure_points)})', zorder=3)
+
+    ax.set_xlabel('Aspect Ratio (alpha)')
+    ax.set_ylabel('th/W Ratio') # Wo/t 또는 th/W, 문제에 맞게 수정
+    ax.set_title(f'Ground Truth Solution Space (Fidelity = {fidelity})')
+    ax.legend()
     
-    all_ratios = [p["th_w_ratio"] for p in success_points + failure_points]
-    if all_ratios and (max(all_ratios) / min(all_ratios)) > 100:
+    all_ratios = points_df['th_w_ratio'].dropna()
+    if not all_ratios.empty and (all_ratios.max() / all_ratios.min()) > 100:
         ax.set_yscale('log')
 
     plt.savefig(output_filename)
-    print(f"\nGrid status plot saved to {output_filename}")
+    print(f"\nGround truth analysis plot saved to {output_filename}")
     plt.close(fig)
 
 if __name__ == "__main__":
@@ -103,7 +129,7 @@ if __name__ == "__main__":
     success_points, failure_points, file_buffer = [], [], []
     CHUNK_SIZE = 10
     
-    output_file_path = os.path.join(config.PROJECT_ROOT, "config.GROUND_TRUTH_FILE_NAME")
+    output_file_path = os.path.join(config.PROJECT_ROOT, config.GROUND_TRUTH_FILE_NAME)
     write_header = not os.path.exists(output_file_path)
     total_points = config.GRID_RESOLUTION**2
     start_time = time.time()
@@ -126,7 +152,7 @@ if __name__ == "__main__":
                 # 진행 상황 출력
                 point_num = i * config.GRID_RESOLUTION + j + 1
                 amp_str = f"{result['max_amplitude']:.4e}" if result['status'] == "Success" else "N/A"
-                print(f"  [{point_num}/{total_points}] α={alpha:.3f}, Wo/to={th_w_ratio:.1f} -> amp={amp_str} | {result['status']}")
+                print(f"  [{point_num}/{total_points}] α={alpha:.3f}, Wo/to={th_w_ratio:.1f} -> obj={amp_str} | {result['status']}")
                 
                 # 청크 저장 로직
                 if len(file_buffer) >= CHUNK_SIZE:
