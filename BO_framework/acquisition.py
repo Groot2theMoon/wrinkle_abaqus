@@ -24,13 +24,6 @@ def mfkg_acq_f(model, train_X, train_Y, cost_utility, config, fidelity_idx):
 def find_best_candidate_with_mfkg(
     model, train_X, train_Y, cost_model, config, problem
 ):
-    """
-    Finds the best candidate point using MF-KG by manually optimizing
-    across different fidelities, avoiding `optimize_acqf_mixed`.
-    """
-    
-    # 1. 기본 Multi-Fidelity Knowledge Gradient 획득 함수 생성
-    #    'project'와 'current_value'를 올바르게 설정하는 것이 중요합니다.
     def project_func(X):
         return project_to_target_fidelity(
             X=X, target_fidelities={problem.fidelity_dim_idx: config.TARGET_FIDELITY_VALUE}
@@ -39,8 +32,7 @@ def find_best_candidate_with_mfkg(
     hf_mask = (train_X[:, problem.fidelity_dim_idx] == config.TARGET_FIDELITY_VALUE)
     best_f = train_Y[hf_mask].max() if hf_mask.any() else -torch.inf
 
-    # 비용을 고려하지 않는 "순수한" MF-KG를 만듭니다.
-    # InverseCostWeightedUtility는 나중에 수동으로 적용합니다.
+    # 비용을 고려하지 않는 "순수한" MF-KG
     acqf_kg = qMultiFidelityKnowledgeGradient(
         model=model,
         num_fantasies=config.NUM_FANTASIES, # config 파일에 정의 필요
@@ -48,7 +40,6 @@ def find_best_candidate_with_mfkg(
         project=project_func,
     )
 
-    # 2. 각 충실도에 대한 후보와 가성비(value)를 저장할 리스트
     candidates_list = []
     values_list = []
     
@@ -57,8 +48,6 @@ def find_best_candidate_with_mfkg(
     for fixed_features in fixed_features_options:
         fidelity_value = list(fixed_features.values())[0]
         
-        # 2-1. 특정 충실도를 고정하는 획득 함수 래퍼 생성
-        #      이 래퍼는 순수한 MF-KG를 감쌉니다.
         acqf_fixed_fidelity = FixedFeatureAcquisitionFunction(
             acq_function=acqf_kg,
             d=problem.dim,
