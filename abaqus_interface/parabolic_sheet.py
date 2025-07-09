@@ -4,7 +4,7 @@ import subprocess
 import time
 
 class AbaqusParabolicWrinkle:
-    def __init__(self, negate=True, config=None):
+    def __init__(self, config, negate=True):
         if config is None:
             raise ValueError("Configuration object must be provided.")
         

@@ -35,14 +35,15 @@ def run_bo_loop(config):
 
     log_data = []
     log_columns = [
-        "Iteration_Step", "Fidelity_BO", "alpha_actual", "th_w_ratio_actual",
+        "Iteration_Step", "Fidelity_BO", "depth_actual",
         "Objective_BO", "Objective_Actual", "Execution_Time_s"
     ]
-    
     # 초기 데이터 생성
     train_X, train_Y, train_costs = generate_initial_data_with_LHS(
         n_lf=config.N_LF_INIT, n_hf=config.N_HF_INIT, problem_instance=problem, tkwargs=tkwargs
     )
+    if train_Y.ndim == 1:
+        train_Y = train_Y.unsqueeze(-1)
 
     # 초기 데이터 로깅
     for i in range(train_X.shape[0]):
@@ -51,8 +52,8 @@ def run_bo_loop(config):
         fid_bo = x_p[problem.fidelity_dim_idx].item()
         is_hf = abs(fid_bo - config.TARGET_FIDELITY_VALUE) < 1e-6
         obj_act = -y_p if problem.negate and is_hf else y_p
-        log_data.append(["Initial", fid_bo, des_act[0], des_act[1], y_p, obj_act, t_p])
-
+        log_data.append(["Initial", fid_bo, des_act[0], y_p, obj_act, t_p])
+    
     # 비용 모델 설정
     lf_costs = train_costs[train_X[:, problem.fidelity_dim_idx] == 0.0]
     hf_costs = train_costs[train_X[:, problem.fidelity_dim_idx] == 1.0]
@@ -79,6 +80,10 @@ def run_bo_loop(config):
         
         # 새로운 후보 평가 및 데이터 업데이트
         new_Y, new_costs = problem(candidates)
+
+        if new_Y.ndim == 1:
+            new_Y = new_Y.unsqueeze(-1)
+
         train_X = torch.cat([train_X, candidates])
         train_Y = torch.cat([train_Y, new_Y])
         
@@ -88,9 +93,9 @@ def run_bo_loop(config):
         fid_bo = x_p[problem.fidelity_dim_idx].item()
         is_hf = abs(fid_bo - config.TARGET_FIDELITY_VALUE) < 1e-6
         obj_act = -y_p if problem.negate and is_hf else y_p
-        log_data.append([f"Iter_{iteration+1}", fid_bo, des_act[0], des_act[1], y_p, obj_act, t_p])
+        log_data.append([f"Iter_{iteration+1}", fid_bo, des_act[0], y_p, obj_act, t_p])
         
-        print(f"  Iteration {iteration+1}: Selected fid={fid_bo:.1f}, α={des_act[0]:.3f}, Wo/to={des_act[1]:.1f}, Result(BO)={y_p:.4e}")
+        print(f"  Iteration {iteration+1}: Selected fid={fid_bo:.1f}, depth={des_act[0]:.3f}, Result(BO)={y_p:.4e}")
 
     # 최종 추천 및 결과 저장
     print("\n--- Final Recommendation ---")
@@ -101,8 +106,8 @@ def run_bo_loop(config):
     des_act = problem.unnormalize(x_p[:problem.num_design_vars]).cpu().numpy().flatten()
     fid_bo = x_p[problem.fidelity_dim_idx].item()
     obj_act = -y_p if problem.negate else y_p
-    log_data.append(["Recommendation", fid_bo, des_act[0], des_act[1], y_p, obj_act, t_p])
-    print(f"Recommended: α={des_act[0]:.3f}, Wo/to={des_act[1]:.1f}, Final Actual Objective={obj_act:.4e}")
+    log_data.append(["Recommendation", fid_bo, des_act[0], y_p, obj_act, t_p])
+    print(f"Recommended: depth={des_act[0]:.3f}, Final Actual Objective={obj_act:.4e}")
 
     # 로그 파일 저장
     log_df = pd.DataFrame(log_data, columns=log_columns)
@@ -148,8 +153,7 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
 
-    finally:
-        if problem_class_ref and hasattr(problem_class_ref, 'cleanup'):
-            problem_class_ref.cleanup()
-
+    #finally:
+    #    if problem_class_ref and hasattr(problem_class_ref, 'cleanup'):
+    #        problem_class_ref.cleanup()
     print("\nOptimization finished.")

@@ -36,7 +36,7 @@ def evaluate_point(problem, depth, config):
 
     if np.isnan(objective_item) or abs(objective_item - problem.nan_penalty) < 1e-6:
         return {
-            "alpha": depth,
+            "depth": depth,
             "objective": np.nan, 
             "cost_s": cost_item if not np.isnan(cost_item) else np.nan,
             "status": "Failed"
@@ -44,7 +44,7 @@ def evaluate_point(problem, depth, config):
     else:
         actual_objective = -objective_item if problem.negate else objective_item
         return {
-            "alpha": depth,
+            "depth": depth,
             "objective": actual_objective,
             "cost_s": cost_item,
             "status": "Success"
@@ -115,43 +115,42 @@ if __name__ == "__main__":
     print(f"Results will be saved to: {output_file_path}")
     print(f"Resources will restart every {CHUNK_SIZE_RESTART} evaluations.")
 
-    try:
-        with open(output_file_path, 'a', newline='') as f:
-            for i in range(0, total_points, CHUNK_SIZE_RESTART):
+    #try:
+    with open(output_file_path, 'a', newline='') as f:
+        for i in range(0, total_points, CHUNK_SIZE_RESTART):
 
                 # 첫 번째 청크가 아닐 경우 이전 리소스를 정리
-                if i > 0:
-                    ProblemClass.cleanup()
+                #if i > 0 and hasattr(ProblemClass, 'cleanup'):
+                #    ProblemClass.cleanup()
                 
-                ProblemClass.start_resources(config)
+                #ProblemClass.start_resources(config)
                 
-                problem = ProblemClass(negate=False, config=config)
+            problem = ProblemClass(negate=False, config=config)
                 
-                chunk_points = all_points[i : i + CHUNK_SIZE_RESTART]
-                
-                for point_idx, depth in enumerate(chunk_points):
-                    global_point_num = i + point_idx + 1
-                    
-                    result = evaluate_point(problem, depth, config)
-                    
-                    file_buffer.append({k: result[k] for k in ["depth", "objective", "cost_s"]})
-                    (success_points if result["status"] == "Success" else failure_points).append(result)
-                    
-                    amp_str = f"{result['objective']:.4e}" if result['status'] == "Success" else "N/A"
-                    print(f"  [{global_point_num}/{total_points}] depth={depth:.3f} -> obj={amp_str} | {result['status']}")
-
-                    if len(file_buffer) >= CHUNK_SIZE_SAVE:
-                        pd.DataFrame(file_buffer).to_csv(f, header=write_header, index=False)
-                        file_buffer, write_header = [], False
+            chunk_points = all_points[i : i + CHUNK_SIZE_RESTART]
             
-            if file_buffer:
-                pd.DataFrame(file_buffer).to_csv(f, header=write_header, index=False, columns=["depth", "objective", "cost_s"])
+            for point_idx, depth in enumerate(chunk_points):
+                global_point_num = i + point_idx + 1
+                    
+                result = evaluate_point(problem, depth, config)
+                
+                file_buffer.append({k: result[k] for k in ["depth", "objective", "cost_s"]})
+                (success_points if result["status"] == "Success" else failure_points).append(result)
+                    
+                amp_str = f"{result['objective']:.4e}" if result['status'] == "Success" else "N/A"
+                print(f"  [{global_point_num}/{total_points}] depth={depth:.3f} -> obj={amp_str} | {result['status']}")
 
-    finally:
-        print("\n--- Final cleanup of resources ---")
-        if 'ProblemClass' in locals() and hasattr(ProblemClass, 'cleanup'):
-            ProblemClass.cleanup()
+                if len(file_buffer) >= CHUNK_SIZE_SAVE:
+                    pd.DataFrame(file_buffer).to_csv(f, header=write_header, index=False)
+                    file_buffer, write_header = [], False
+            
+        if file_buffer:
+            pd.DataFrame(file_buffer).to_csv(f, header=write_header, index=False, columns=["depth", "objective", "cost_s"])
 
+#    finally:
+#       print("\n--- Final cleanup of resources ---")
+#        if 'ProblemClass' in locals() and hasattr(ProblemClass, 'cleanup'):
+#            ProblemClass.cleanup()
     plot_df = pd.DataFrame(success_points + failure_points)
     plot_filename = output_file_path.replace(".csv", "_plot.png")
     visualize_grid(plot_df, plot_filename)

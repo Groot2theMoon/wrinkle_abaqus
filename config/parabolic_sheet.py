@@ -3,6 +3,7 @@ import os
 
 # ----------------- 실험 기본 설정 -----------------
 EXPERIMENT_NAME = "Parabolic_Wrinkle_1D_v1"
+SIMULATION_TOOL = "abaqus"
 PROBLEM_CLASS_PATH = "abaqus_interface.parabolic_sheet.AbaqusParabolicWrinkle"
 
 # ----------------- 아바쿠스 관련 설정 -----------------
@@ -33,6 +34,8 @@ FALLBACK_COST_LF = 60.0    # LF 해석은 1분 정도 걸린다고 가정
 FALLBACK_COST_HF = 600.0   # HF 해석은 10분 정도 걸린다고 가정
 
 # ----------------- 분석용 Ground Truth 파일 -----------------
-GROUND_TRUTH_FILE = "path/to/your/ground_truth_1d.csv"
+GROUND_TRUTH_FILE_NAME = "ground_truth_parabolic_1d.csv"
 
 GRID_RESOLUTION = 10  # 그리드 해상도
+
+#NUM_FANTASIES = 16
