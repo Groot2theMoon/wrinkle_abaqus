@@ -3,16 +3,16 @@ import torch
 import subprocess
 import time
 
-class AbaqusWrinkleFunction:
+class AbaqusParabolicWrinkle:
     def __init__(self, negate=True, config=None):
         if config is None:
             raise ValueError("Configuration object must be provided.")
         
-        self.negate = negate
+        self.negate = negate # 최소화문제
         self.config = config
         
-        self._bounds = [config.ALPHA_BOUNDS, config.TH_W_RATIO_BOUNDS]
-        self.num_design_vars = len(self._bounds)
+        self._bounds = [config.DEPTH_BOUNDS]
+        self.num_design_vars = 1
         self.dim = self.num_design_vars + 1
         self.fidelity_dim_idx = self.num_design_vars
         
@@ -44,12 +44,12 @@ class AbaqusWrinkleFunction:
             fidelity_bo = X_full_norm[i, self.fidelity_dim_idx].item()
             X_design_unnorm = self.unnormalize(X_design_norm)
             
-            alpha, th_w_ratio = X_design_unnorm[0, 0].item(), X_design_unnorm[0, 1].item()
+            depth = X_design_unnorm[0, 0].item()
             
-            job_name = f"job_alpha{alpha:.3f}_thr{th_w_ratio:.1f}_fid{fidelity_bo:.0f}"
+            job_name = f"job_alpha{depth:.3f}_fid{fidelity_bo:.0f}"
             result_file_path = os.path.join(self.config.ABAQUS_WORKING_DIR, f"result_{job_name}.txt")
             
-            print(f"  > Evaluating: α={alpha:.3f}, Wo/to={th_w_ratio:.1f}, fid={fidelity_bo:.1f}...")
+            print(f"  > Evaluating: depth={depth:.3f}, fid={fidelity_bo:.1f}...")
             
             start_time = time.time()
             try:
@@ -58,8 +58,10 @@ class AbaqusWrinkleFunction:
 
                 cmd = [
                     self.config.ABAQUS_EXE_PATH, "cae", f"noGUI={self.config.ABAQUS_SCRIPT_NAME}",
-                    "--", "--alpha", str(alpha), "--th_w_ratio", str(th_w_ratio),
-                    "--fidelity", str(fidelity_bo), "--job_name", job_name,
+                    "--", 
+                    "--depth", str(depth), # depth 파라미터 전달
+                    "--fidelity", str(fidelity_bo),
+                    "--job_name", job_name,
                     "--work_dir", self.config.ABAQUS_WORKING_DIR
                 ]
                 

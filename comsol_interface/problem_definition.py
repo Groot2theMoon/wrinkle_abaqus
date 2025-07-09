@@ -30,7 +30,7 @@ class ComsolProblem:
         self.num_design_vars = len(self._bounds)
         self.dim = self.num_design_vars + 1
         self.fidelity_dim_idx = self.num_design_vars
-        self.nan_penalty = -1e10 if self.negate else 1e10
+        self.nan_penalty = -1e10 # NaN 값 페널티는 최대화&최소화 둘 다 아주 작은 음수
         self.target_fidelity_bo = config.TARGET_FIDELITY_VALUE
 
     def unnormalize(self, X_norm_design_vars):
