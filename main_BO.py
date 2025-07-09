@@ -129,7 +129,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # 동적으로 설정 파일 임포트
     try:
         config_module = importlib.import_module(args.config)
         print(f"Successfully loaded configuration: {args.config}")
@@ -153,4 +152,4 @@ if __name__ == "__main__":
         if problem_class_ref and hasattr(problem_class_ref, 'cleanup'):
             problem_class_ref.cleanup()
 
-    print("\nMFBO for ABAQUS Wrinkle Optimization finished.")
+    print("\nOptimization finished.")
