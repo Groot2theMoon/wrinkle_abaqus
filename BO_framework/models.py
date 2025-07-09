@@ -1,5 +1,5 @@
 import torch
-from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
+from botorch.models.gp_regression_fidelity import SingleTaskGP
 from botorch.models.transforms.outcome import Standardize
 from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
 from botorch import fit_gpytorch_mll
@@ -11,10 +11,10 @@ def initialize_gp_model(train_X, train_Y, fidelity_idx):
     valid_idx = ~torch.isinf(train_Y.squeeze()) & ~torch.isnan(train_Y.squeeze())
     if valid_idx.sum() < 2: return None, None
         
-    model = SingleTaskMultiFidelityGP(
-        train_X=train_X[valid_idx], train_Y=train_Y[valid_idx],
+    model = SingleTaskGP(
+        train_X=train_X[valid_idx], 
+        train_Y=train_Y[valid_idx],
         outcome_transform=Standardize(m=train_Y[valid_idx].shape[-1]), 
-        data_fidelities=[fidelity_idx]
     )
     mll = ExactMarginalLogLikelihood(model.likelihood, model)
     fit_gpytorch_mll(mll)

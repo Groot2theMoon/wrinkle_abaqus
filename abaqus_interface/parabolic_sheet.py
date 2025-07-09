@@ -83,8 +83,12 @@ class AbaqusParabolicWrinkle:
         if nan_mask.any():
             objectives[nan_mask] = self.nan_penalty
         
+        successful_mask = ~nan_mask.squeeze(-1) # nan이 아닌, 성공한 결과만
         is_hf = (torch.abs(X_full_norm[:, self.fidelity_dim_idx] - self.config.TARGET_FIDELITY_VALUE) < 1e-6)
+        
+        # 성공했고, HF이고, negate=True인 경우에만 부호를 바꿈
         if self.negate:
-            objectives[is_hf] = -objectives[is_hf]
-
+            mask_to_negate = successful_mask & is_hf
+            objectives[mask_to_negate] = -objectives[mask_to_negate]
+            
         return objectives, costs

@@ -6,13 +6,13 @@ import argparse
 import importlib
 
 from botorch.models.cost import AffineFidelityCostModel
-from botorch.acquisition.cost_aware import InverseCostWeightedUtility
-from botorch.optim.optimize import optimize_acqf_mixed
+#from botorch.acquisition.cost_aware import InverseCostWeightedUtility
+#from botorch.optim.optimize import optimize_acqf_mixed
 
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
-from BO_framework.acquisition import mfkg_acq_f
-from utils.plotting import plot_bo_results
+from BO_framework.acquisition import find_best_candidate_mfei
+from utils.plotting import plot_bo_results, plot_convergence
 
 tkwargs = {
     "dtype": torch.double,
@@ -33,6 +33,8 @@ def run_bo_loop(config):
     ProblemClass = get_problem_class(config.PROBLEM_CLASS_PATH)
     problem = ProblemClass(config)
 
+    num_dims = problem.num_design_vars
+
     log_data = []
     log_columns = [
         "Iteration_Step", "Fidelity_BO", "depth_actual",
@@ -42,6 +44,7 @@ def run_bo_loop(config):
     train_X, train_Y, train_costs = generate_initial_data_with_LHS(
         n_lf=config.N_LF_INIT, n_hf=config.N_HF_INIT, problem_instance=problem, tkwargs=tkwargs
     )
+
     if train_Y.ndim == 1:
         train_Y = train_Y.unsqueeze(-1)
 
@@ -60,9 +63,8 @@ def run_bo_loop(config):
     cost_lf = lf_costs.mean().item() if len(lf_costs) > 0 else config.FALLBACK_COST_LF
     cost_hf = hf_costs.mean().item() if len(hf_costs) > 0 else config.FALLBACK_COST_HF
     cost_model = AffineFidelityCostModel(fidelity_weights={problem.fidelity_dim_idx: cost_hf - cost_lf}, fixed_cost=cost_lf)
-    cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
+    #cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
     
-    # MFBO 메인 루프
     print(f"\n--- Starting MFBO Loop ({config.NUM_BO_ITERATIONS} iterations) ---")
     for iteration in range(config.NUM_BO_ITERATIONS):
         mll, model = initialize_gp_model(train_X, train_Y, problem.fidelity_dim_idx)
@@ -70,12 +72,13 @@ def run_bo_loop(config):
             print("Model initialization failed. Stopping.")
             break
         
-        acqf = mfkg_acq_f(model, train_X, train_Y, cost_aware_utility, config, problem.fidelity_dim_idx)
-        
-        candidates, _ = optimize_acqf_mixed(
-            acq_function=acqf, bounds=config.NORMALIZED_BOUNDS, q=config.BATCH_SIZE,
-            num_restarts=config.NUM_RESTARTS, raw_samples=config.RAW_SAMPLES,
-            fixed_features_list=[{problem.fidelity_dim_idx: 0.0}, {problem.fidelity_dim_idx: 1.0}]
+        candidates, acq_value = find_best_candidate_mfei(
+            model=model,
+            train_X=train_X,
+            train_Y=train_Y,
+            cost_model=cost_model,
+            config=config,
+            problem=problem
         )
         
         # 새로운 후보 평가 및 데이터 업데이트
@@ -109,20 +112,31 @@ def run_bo_loop(config):
     log_data.append(["Recommendation", fid_bo, des_act[0], y_p, obj_act, t_p])
     print(f"Recommended: depth={des_act[0]:.3f}, Final Actual Objective={obj_act:.4e}")
 
-    # 로그 파일 저장
     log_df = pd.DataFrame(log_data, columns=log_columns)
     log_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{config.EXPERIMENT_NAME}_log.csv"
     log_df.to_csv(log_filename, index=False)
     print(f"\nLog file saved to {log_filename}")
 
     # Ground Truth와 비교 분석
-    if os.path.exists(config.GROUND_TRUTH_FILE):
+    if os.path.exists(config.GROUND_TRUTH_FILE_NAME):
         print("\n--- Performing Analysis with Ground Truth ---")
-        gt_df = pd.read_csv(config.GROUND_TRUTH_FILE)
-        plot_filename = log_filename.replace(".csv", "_analysis_plot.png")
-        plot_bo_results(gt_df, log_df, plot_filename, config)
+        try:
+            gt_df = pd.read_csv(config.GROUND_TRUTH_FILE_NAME)
+            plot_filename = log_filename.replace(".csv", "_analysis_plot.png")
+            # `problem` 인자를 전달
+            plot_bo_results(gt_df, log_df, plot_filename, config, problem)
+        except Exception as e:
+            print(f"Failed to generate analysis plot: {e}")
+            # GT 파일이 있어도 플롯 실패 시 수렴 플롯이라도 그림
+            if num_dims > 2:
+                plot_filename = log_filename.replace(".csv", "_convergence_plot.png")
+                plot_convergence(log_df, plot_filename, config)
+    elif num_dims > 2: # 3D 이상이고 GT가 없을 땐 수렴 플롯이라도 그림
+        print("\n--- Plotting Convergence (no Ground Truth) ---")
+        plot_filename = log_filename.replace(".csv", "_convergence_plot.png")
+        plot_convergence(log_df, plot_filename, config)
     else:
-        print(f"\nWarning: Ground truth file '{config.GROUND_TRUTH_FILE}' not found. Skipping analysis plot.")
+        print(f"\nWarning: Ground truth file for {config.EXPERIMENT_NAME} not found. Skipping analysis plot.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Multi-Fidelity Bayesian Optimization.")
