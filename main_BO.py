@@ -8,7 +8,6 @@ import importlib
 from botorch.models.cost import AffineFidelityCostModel
 #from botorch.acquisition.cost_aware import InverseCostWeightedUtility
 #from botorch.optim.optimize import optimize_acqf_mixed
-
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
 from BO_framework.acquisition import find_best_candidate_mfei
@@ -80,24 +79,19 @@ def run_bo_loop(config):
             config=config,
             problem=problem
         )
-        
-        # 새로운 후보 평가 및 데이터 업데이트
         new_Y, new_costs = problem(candidates)
-
         if new_Y.ndim == 1:
             new_Y = new_Y.unsqueeze(-1)
 
         train_X = torch.cat([train_X, candidates])
         train_Y = torch.cat([train_Y, new_Y])
         
-        # 새 데이터 로깅
         x_p, y_p, t_p = candidates[0], new_Y[0].item(), new_costs[0].item()
         des_act = problem.unnormalize(x_p[:problem.num_design_vars]).cpu().numpy().flatten()
         fid_bo = x_p[problem.fidelity_dim_idx].item()
         is_hf = abs(fid_bo - config.TARGET_FIDELITY_VALUE) < 1e-6
         obj_act = -y_p if problem.negate and is_hf else y_p
         log_data.append([f"Iter_{iteration+1}", fid_bo, des_act[0], y_p, obj_act, t_p])
-        
         print(f"  Iteration {iteration+1}: Selected fid={fid_bo:.1f}, depth={des_act[0]:.3f}, Result(BO)={y_p:.4e}")
 
     # 최종 추천 및 결과 저장
@@ -117,7 +111,6 @@ def run_bo_loop(config):
     log_df.to_csv(log_filename, index=False)
     print(f"\nLog file saved to {log_filename}")
 
-    # Ground Truth와 비교 분석
     if os.path.exists(config.GROUND_TRUTH_FILE_NAME):
         print("\n--- Performing Analysis with Ground Truth ---")
         try:
@@ -159,7 +152,6 @@ if __name__ == "__main__":
     try:
         ProblemClass = get_problem_class(config_module.PROBLEM_CLASS_PATH)
         problem_class_ref = ProblemClass
-
         run_bo_loop(config_module)
     
     except Exception as e:

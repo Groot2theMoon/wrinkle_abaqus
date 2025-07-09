@@ -28,9 +28,7 @@ def evaluate_point(problem, depth, config):
 
     depth_norm = normalize(depth, config.DEPTH_BOUNDS)
     X_norm = torch.tensor([[depth_norm, 1.0]], **tkwargs)
-
     objective_tensor, cost_tensor = problem(X_norm)
-    
     objective_item = objective_tensor.item()
     cost_item = cost_tensor.item()
 
@@ -75,13 +73,11 @@ def visualize_grid(points_df, output_filename="ground_truth_plot_1d.png"):
     ax.set_ylabel('Wrinkle Amplitude') 
     ax.set_title(f'Ground Truth Solution Space')
     ax.grid(True)
-
     plt.savefig(output_filename)
     print(f"\nGround truth analysis plot saved to {output_filename}")
     plt.close(fig)
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Generate ground truth solution space.")
     parser.add_argument(
         "--config", type=str, required=True,
@@ -97,9 +93,7 @@ if __name__ == "__main__":
         exit()
 
     ProblemClass = get_problem_class(config.PROBLEM_CLASS_PATH)
-
     depth_vals = np.linspace(config.DEPTH_BOUNDS[0], config.DEPTH_BOUNDS[1], config.GRID_RESOLUTION)
-
     all_points = list(depth_vals)
 
     success_points, failure_points, file_buffer = [], [], []
@@ -122,7 +116,6 @@ if __name__ == "__main__":
         for i in range(0, total_points, CHUNK_SIZE_RESTART):
                 
             problem = ProblemClass(negate=False, config=config)
-                
             chunk_points = all_points[i : i + CHUNK_SIZE_RESTART]
             
             for point_idx, depth in enumerate(chunk_points):
