@@ -21,6 +21,79 @@ def mfkg_acq_f(model, train_X, train_Y, cost_utility, config, fidelity_idx):
         project=project_func
     )
 
+def find_best_candidate_with_mfkg(
+    model, train_X, train_Y, cost_model, config, problem
+):
+    """
+    Finds the best candidate point using MF-KG by manually optimizing
+    across different fidelities, avoiding `optimize_acqf_mixed`.
+    """
+    
+    # 1. 기본 Multi-Fidelity Knowledge Gradient 획득 함수 생성
+    #    'project'와 'current_value'를 올바르게 설정하는 것이 중요합니다.
+    def project_func(X):
+        return project_to_target_fidelity(
+            X=X, target_fidelities={problem.fidelity_dim_idx: config.TARGET_FIDELITY_VALUE}
+        )
+
+    hf_mask = (train_X[:, problem.fidelity_dim_idx] == config.TARGET_FIDELITY_VALUE)
+    best_f = train_Y[hf_mask].max() if hf_mask.any() else -torch.inf
+
+    # 비용을 고려하지 않는 "순수한" MF-KG를 만듭니다.
+    # InverseCostWeightedUtility는 나중에 수동으로 적용합니다.
+    acqf_kg = qMultiFidelityKnowledgeGradient(
+        model=model,
+        num_fantasies=config.NUM_FANTASIES, # config 파일에 정의 필요
+        current_value=best_f,
+        project=project_func,
+    )
+
+    # 2. 각 충실도에 대한 후보와 가성비(value)를 저장할 리스트
+    candidates_list = []
+    values_list = []
+    
+    fixed_features_options = [{problem.fidelity_dim_idx: 0.0}, {problem.fidelity_dim_idx: 1.0}]
+
+    for fixed_features in fixed_features_options:
+        fidelity_value = list(fixed_features.values())[0]
+        
+        # 2-1. 특정 충실도를 고정하는 획득 함수 래퍼 생성
+        #      이 래퍼는 순수한 MF-KG를 감쌉니다.
+        acqf_fixed_fidelity = FixedFeatureAcquisitionFunction(
+            acq_function=acqf_kg,
+            d=problem.dim,
+            columns=[problem.fidelity_dim_idx],
+            values=[fidelity_value]
+        )
+
+        # 2-2. `optimize_acqf`로 설계 변수 공간에 대해 최적화
+        candidate_design, acq_value = optimize_acqf(
+            acq_function=acqf_fixed_fidelity,
+            bounds=config.NORMALIZED_BOUNDS[:, :problem.num_design_vars],
+            q=config.BATCH_SIZE,
+            num_restarts=config.NUM_RESTARTS,
+            raw_samples=config.RAW_SAMPLES,
+        )
+
+        # 2-3. 전체 후보점(설계 변수 + 충실도) 복원
+        candidate_full = torch.cat(
+            [candidate_design, torch.tensor([[fidelity_value]], dtype=train_X.dtype, device=train_X.device)], 
+            dim=-1
+        )
+
+        # 2-4. 비용 계산 및 가성비(acq_value / cost) 계산
+        cost = cost_model(candidate_full).squeeze()
+        cost_weighted_value = acq_value / (cost + 1e-9)
+
+        candidates_list.append(candidate_full)
+        values_list.append(cost_weighted_value)
+
+    # 3. LF와 HF의 가성비를 비교하여 최종 후보 선택
+    best_idx = torch.stack(values_list).argmax()
+    best_candidate = candidates_list[best_idx]
+    
+    return best_candidate, values_list[best_idx]
+
 def find_best_candidate_mfei(
     model, train_X, train_Y, cost_model, config, problem
 ):

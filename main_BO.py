@@ -11,6 +11,7 @@ from botorch.models.cost import AffineFidelityCostModel
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
 from BO_framework.acquisition import find_best_candidate_mfei
+#from BO_framework.acquisition import find_best_candidate_with_mfkg
 from utils.plotting import plot_bo_results, plot_convergence
 
 tkwargs = {
@@ -79,6 +80,14 @@ def run_bo_loop(config):
             config=config,
             problem=problem
         )
+#        candidates, _ = find_best_candidate_with_mfkg(
+#            model=model,
+#            train_X=train_X,
+#            train_Y=train_Y,
+#            cost_model=cost_model,
+#            config=config,
+#            problem=problem
+#        )
         new_Y, new_costs = problem(candidates)
         if new_Y.ndim == 1:
             new_Y = new_Y.unsqueeze(-1)

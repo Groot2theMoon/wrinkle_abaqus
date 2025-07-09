@@ -38,4 +38,4 @@ GROUND_TRUTH_FILE_NAME = "ground_truth_parabolic_1d.csv"
 
 GRID_RESOLUTION = 10  # 그리드 해상도
 
-#NUM_FANTASIES = 16
+NUM_FANTASIES = 128
