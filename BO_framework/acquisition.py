@@ -1,7 +1,7 @@
 import torch
 from botorch.acquisition.knowledge_gradient import qMultiFidelityKnowledgeGradient
 from botorch.acquisition.utils import project_to_target_fidelity
-from botorch.acquisition.monte_carlo import qExpectedImprovement
+from botorch.acquisition.logei import qLogExpectedImprovement
 from botorch.acquisition.fixed_feature import FixedFeatureAcquisitionFunction
 from botorch.optim.optimize import optimize_acqf
 
@@ -90,7 +90,7 @@ def find_best_candidate_mfei(
     hf_mask = (train_X[:, problem.fidelity_dim_idx] == config.TARGET_FIDELITY_VALUE)
     best_f = train_Y[hf_mask].max() if hf_mask.any() else torch.tensor(float("-inf"), dtype=train_Y.dtype, device=train_Y.device)
     
-    acqf_ei = qExpectedImprovement(model=model, best_f=best_f)
+    acqf_ei = qLogExpectedImprovement(model=model, best_f=best_f)
 
     # 2. 각 충실도에 대한 후보와 가성비(value)를 저장할 리스트
     candidates_list = []

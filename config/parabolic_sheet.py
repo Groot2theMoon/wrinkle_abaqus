@@ -7,7 +7,7 @@ SIMULATION_TOOL = "abaqus"
 PROBLEM_CLASS_PATH = "abaqus_interface.parabolic_sheet.AbaqusParabolicWrinkle"
 
 # ----------------- 아바쿠스 관련 설정 -----------------
-ABAQUS_EXE_PATH = r"C:\SIMULIA\Commands\abaqus.exe"
+ABAQUS_EXE_PATH = r"C:\SIMULIA\Commands\abaqus.bat"
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ABAQUS_SCRIPT_FOLDER = PROJECT_ROOT
 ABAQUS_WORKING_DIR = os.path.join(PROJECT_ROOT, "abaqus_workspace")
