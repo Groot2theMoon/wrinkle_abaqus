@@ -10,15 +10,13 @@
 #: Executing "onCaeGraphicsStartup()" in the site directory ...
 from abaqus import *
 from abaqusConstants import *
-session.Viewport(name='Viewport: 1', origin=(0.0, 0.0), width=204.628112792969, 
-    height=243.911117553711)
+session.Viewport(name='Viewport: 1', origin=(0.0, 0.0), width=204.628112792969, height=243.911117553711)
 session.viewports['Viewport: 1'].makeCurrent()
 session.viewports['Viewport: 1'].maximize()
 from caeModules import *
 from driverUtils import executeOnCaeStartup
 executeOnCaeStartup()
-session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(
-    referenceRepresentation=ON)
+session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(referenceRepresentation=ON)
 Mdb()
 #: A new model database has been created.
 #: The model "Model-1" has been created.
@@ -34,18 +32,15 @@ s.Spline(points=((0.0, 0.0), (0.125, 0.01), (0.25, 0.0)))
 s.undo()
 s.Spline(points=((0.0, 0.0), (0.125, -0.01), (0.25, 0.0)))
 s.Spline(points=((0.0, 0.1), (0.125, 0.11), (0.25, 0.1)))
-p = mdb.models['Model-1'].Part(name='Part-1', dimensionality=THREE_D, 
-    type=DEFORMABLE_BODY)
+p = mdb.models['Model-1'].Part(name='Part-1', dimensionality=THREE_D, type=DEFORMABLE_BODY)
 p = mdb.models['Model-1'].parts['Part-1']
 p.BaseShell(sketch=s)
 s.unsetPrimaryObject()
 p = mdb.models['Model-1'].parts['Part-1']
 session.viewports['Viewport: 1'].setValues(displayedObject=p)
 del mdb.models['Model-1'].sketches['__profile__']
-session.viewports['Viewport: 1'].partDisplay.setValues(sectionAssignments=ON, 
-    engineeringFeatures=ON)
-session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(
-    referenceRepresentation=OFF)
+session.viewports['Viewport: 1'].partDisplay.setValues(sectionAssignments=ON, engineeringFeatures=ON)
+session.viewports['Viewport: 1'].partDisplay.geometryOptions.setValues(referenceRepresentation=OFF)
 mdb.models['Model-1'].Material(name='Material-1')
 mdb.models['Model-1'].materials['Material-1'].Density(table=((1000.0, ), ))
 mdb.models['Model-1'].materials['Material-1'].Hyperelastic(
