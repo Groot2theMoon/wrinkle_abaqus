@@ -1,0 +1,96 @@
+# -*- coding: mbcs -*-
+mdb.Model(name='Buckle_Model')
+mdb.models['Buckle_Model'].ConstrainedSketch(name='__profile__', sheetSize=1.0)
+mdb.models['Buckle_Model'].sketches['__profile__'].Spline(points=((0.25, 
+    -0.05), (0.125, -0.051), (0.0, -0.05)))
+mdb.models['Buckle_Model'].sketches['__profile__'].Line(point1=(0.0, -0.05), 
+    point2=(0.0, 0.05))
+mdb.models['Buckle_Model'].sketches['__profile__'].Spline(points=((0.0, 0.05), 
+    (0.125, 0.051), (0.25, 0.05)))
+mdb.models['Buckle_Model'].sketches['__profile__'].Line(point1=(0.25, 0.05), 
+    point2=(0.25, -0.05))
+mdb.models['Buckle_Model'].Part(dimensionality=THREE_D, name='SheetPart_B', 
+    type=DEFORMABLE_BODY)
+mdb.models['Buckle_Model'].parts['SheetPart_B'].BaseShell(sketch=
+    mdb.models['Buckle_Model'].sketches['__profile__'])
+mdb.models['Buckle_Model'].Material(name='HyperelasticMat')
+mdb.models['Buckle_Model'].materials['HyperelasticMat'].Hyperelastic(
+    materialType=ISOTROPIC, table=((3000000.0, 0.0), ), testData=OFF, type=
+    NEO_HOOKE, volumetricResponse=VOLUMETRIC_DATA)
+mdb.models['Buckle_Model'].HomogeneousShellSection(material='HyperelasticMat', 
+    name='SheetSection', thickness=0.0001)
+mdb.models['Buckle_Model'].parts['SheetPart_B'].Set(faces=
+    mdb.models['Buckle_Model'].parts['SheetPart_B'].faces.getSequenceFromMask((
+    '[#1 ]', ), ), name='AllFaces')
+mdb.models['Buckle_Model'].parts['SheetPart_B'].SectionAssignment(offsetType=
+    MIDDLE_SURFACE, region=
+    mdb.models['Buckle_Model'].parts['SheetPart_B'].sets['AllFaces'], 
+    sectionName='SheetSection')
+mdb.models['Buckle_Model'].parts['SheetPart_B'].seedPart(deviationFactor=0.1, 
+    minSizeFactor=0.1, size=0.01)
+mdb.models['Buckle_Model'].parts['SheetPart_B'].generateMesh()
+mdb.models['Buckle_Model'].parts['SheetPart_B'].Set(edges=
+    mdb.models['Buckle_Model'].parts['SheetPart_B'].edges.getSequenceFromMask(
+    mask=('[#4 ]', ), ), name='Fix_Edges')
+mdb.models['Buckle_Model'].parts['SheetPart_B'].Set(edges=
+    mdb.models['Buckle_Model'].parts['SheetPart_B'].edges.getSequenceFromMask(
+    mask=('[#1 ]', ), ), name='Disp_Edges')
+mdb.models['Buckle_Model'].rootAssembly.Instance(dependent=ON, name=
+    'SheetInst_B', part=mdb.models['Buckle_Model'].parts['SheetPart_B'])
+mdb.models['Buckle_Model'].StaticStep(initialInc=0.1, name='Preload', nlgeom=ON
+    , previous='Initial')
+mdb.models['Buckle_Model'].BuckleStep(eigensolver=LANCZOS, name='Buckle', 
+    numEigen=1, previous='Preload')
+mdb.models['Buckle_Model'].EncastreBC(createStepName='Initial', name='FixLeft', 
+    region=
+    mdb.models['Buckle_Model'].rootAssembly.instances['SheetInst_B'].sets['Fix_Edges'])
+mdb.models['Buckle_Model'].DisplacementBC(createStepName='Preload', name=
+    'LoadBC', region=
+    mdb.models['Buckle_Model'].rootAssembly.instances['SheetInst_B'].sets['Disp_Edges']
+    , u1=-1e-09, u2=0, u3=0, ur1=0, ur2=0, ur3=0)
+mdb.models['Buckle_Model'].boundaryConditions['LoadBC'].setValuesInStep(
+    stepName='Buckle', u1=-0.0025)
+mdb.Job(model='Buckle_Model', name='job_alpha0p001_fid1_buckle')
+mdb.jobs['job_alpha0p001_fid1_buckle'].submit(consistencyChecking=OFF)
+from job import *
+mdb.jobs['job_alpha0p001_fid1_buckle'].waitForCompletion()
+mdb.Model(name='Post_Model')
+mdb.models['Post_Model'].ConstrainedSketch(name='__profile__', sheetSize=1.0)
+mdb.models['Post_Model'].sketches['__profile__'].Spline(points=((0.25, -0.05), 
+    (0.125, -0.051), (0.0, -0.05)))
+mdb.models['Post_Model'].sketches['__profile__'].Line(point1=(0.0, -0.05), 
+    point2=(0.0, 0.05))
+mdb.models['Post_Model'].sketches['__profile__'].Spline(points=((0.0, 0.05), (
+    0.125, 0.051), (0.25, 0.05)))
+mdb.models['Post_Model'].sketches['__profile__'].Line(point1=(0.25, 0.05), 
+    point2=(0.25, -0.05))
+mdb.models['Post_Model'].Part(dimensionality=THREE_D, name='SheetPart_P', type=
+    DEFORMABLE_BODY)
+mdb.models['Post_Model'].parts['SheetPart_P'].BaseShell(sketch=
+    mdb.models['Post_Model'].sketches['__profile__'])
+mdb.models['Post_Model'].Material(name='HyperelasticMat')
+mdb.models['Post_Model'].materials['HyperelasticMat'].Hyperelastic(
+    materialType=ISOTROPIC, table=((3000000.0, 0.0), ), testData=OFF, type=
+    NEO_HOOKE, volumetricResponse=VOLUMETRIC_DATA)
+mdb.models['Post_Model'].HomogeneousShellSection(material='HyperelasticMat', 
+    name='SheetSection', thickness=0.0001)
+mdb.models['Post_Model'].parts['SheetPart_P'].Set(faces=
+    mdb.models['Post_Model'].parts['SheetPart_P'].faces.getSequenceFromMask((
+    '[#1 ]', ), ), name='AllFaces')
+mdb.models['Post_Model'].parts['SheetPart_P'].SectionAssignment(offsetType=
+    MIDDLE_SURFACE, region=
+    mdb.models['Post_Model'].parts['SheetPart_P'].sets['AllFaces'], 
+    sectionName='SheetSection')
+mdb.models['Post_Model'].parts['SheetPart_P'].seedPart(deviationFactor=0.1, 
+    minSizeFactor=0.1, size=0.0025)
+mdb.models['Post_Model'].parts['SheetPart_P'].generateMesh()
+mdb.models['Post_Model'].parts['SheetPart_P'].Set(edges=
+    mdb.models['Post_Model'].parts['SheetPart_P'].edges.getSequenceFromMask(
+    mask=('[#4 ]', ), ), name='Fix_Edges')
+mdb.models['Post_Model'].parts['SheetPart_P'].Set(edges=
+    mdb.models['Post_Model'].parts['SheetPart_P'].edges.getSequenceFromMask(
+    mask=('[#1 ]', ), ), name='Disp_Edges')
+mdb.models['Post_Model'].rootAssembly.Instance(dependent=ON, name='SheetInst_P'
+    , part=mdb.models['Post_Model'].parts['SheetPart_P'])
+mdb.models['Post_Model'].keywordBlock.synchVersions(storeNodesAndElements=
+    False)

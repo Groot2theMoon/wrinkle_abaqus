@@ -1,0 +1,33 @@
+# -*- coding: mbcs -*-
+from part import *
+mdb.Model(name='Model')
+mdb.models['Model'].ConstrainedSketch(name='__profile__', sheetSize=1.0)
+mdb.models['Model'].sketches['__profile__'].Spline(points=((0.25, -0.05), (
+    0.125, -0.0932303827955948), (0.0, -0.05)))
+mdb.models['Model'].sketches['__profile__'].Line(point1=(0.0, -0.05), point2=(
+    0.0, 0.05))
+mdb.models['Model'].sketches['__profile__'].Spline(points=((0.0, 0.05), (0.125, 
+    0.0932303827955948), (0.25, 0.05)))
+mdb.models['Model'].sketches['__profile__'].Line(point1=(0.25, 0.05), point2=(
+    0.25, -0.05))
+mdb.models['Model'].Part(dimensionality=THREE_D, name='SheetPart', type=
+    DEFORMABLE_BODY)
+mdb.models['Model'].parts['SheetPart'].BaseShell(sketch=
+    mdb.models['Model'].sketches['__profile__'])
+mdb.models['Model'].Material(name='HyperelasticMat')
+mdb.models['Model'].materials['HyperelasticMat'].Hyperelastic(table=((
+    3000000.0, 0.0), ), type=NEO_HOOKE)
+mdb.models['Model'].HomogeneousShellSection(material='HyperelasticMat', name=
+    'SheetSection', thickness=0.0001)
+mdb.models['Model'].parts['SheetPart'].Set(faces=
+    mdb.models['Model'].parts['SheetPart'].faces.getSequenceFromMask(('[#1 ]', 
+    ), ), name='AllFaces')
+mdb.models['Model'].parts['SheetPart'].SectionAssignment(offsetType=
+    MIDDLE_SURFACE, region=
+    mdb.models['Model'].parts['SheetPart'].sets['AllFaces'], sectionName=
+    'SheetSection', thicknessAssignment=FROM_SECTION)
+mdb.models['Model'].rootAssembly.Instance(dependent=ON, name='SheetInst', part=
+    mdb.models['Model'].parts['SheetPart'])
+mdb.models['Model'].parts['SheetPart'].seedPart(deviationFactor=0.1, 
+    minSizeFactor=0.1, size=2e-05)
+mdb.models['Model'].parts['SheetPart'].generateMesh()

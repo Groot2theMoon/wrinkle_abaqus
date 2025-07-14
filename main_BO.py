@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import argparse
 import importlib
+import glob
 
 from botorch.models.cost import AffineFidelityCostModel
 #from botorch.acquisition.cost_aware import InverseCostWeightedUtility
@@ -26,6 +27,21 @@ def get_problem_class(class_path_str):
         return getattr(module, class_name)
     except (ImportError, AttributeError) as e:
         raise ImportError(f"Could not import class from path '{class_path_str}': {e}")
+
+def cleanup_result_files():
+    """
+    작업 디렉터리에 생성된 모든 'result_job_*.txt' 파일을 정리
+    """
+    files_to_delete = glob.glob("result_job_*.txt")
+    if not files_to_delete:
+        print("No temporary result files found to clean up.")
+        return
+
+    for f_path in files_to_delete:
+        try:
+            os.remove(f_path)
+        except OSError as e:
+            print(f"Error deleting file {f_path}: {e}")
 
 def run_bo_loop(config):
 
@@ -101,7 +117,7 @@ def run_bo_loop(config):
         is_hf = abs(fid_bo - config.TARGET_FIDELITY_VALUE) < 1e-6
         obj_act = -y_p if problem.negate and is_hf else y_p
         log_data.append([f"Iter_{iteration+1}", fid_bo, des_act[0], y_p, obj_act, t_p])
-        print(f"  Iteration {iteration+1}: Selected fid={fid_bo:.1f}, depth={des_act[0]:.3f}, Result(BO)={y_p:.4e}")
+        print(f"  Iteration {iteration+1}: Selected fid={fid_bo:.1f}, depth={des_act[0]:.3f}, Result(BO)={obj_act:.4e}")
 
     # 최종 추천 및 결과 저장
     print("\n--- Final Recommendation ---")
@@ -121,7 +137,7 @@ def run_bo_loop(config):
     print(f"\nLog file saved to {log_filename}")
 
     if os.path.exists(config.GROUND_TRUTH_FILE_NAME):
-        print("\n--- Performing Analysis with Ground Truth ---")
+        #print("\n--- Performing Analysis with Ground Truth ---")
         try:
             gt_df = pd.read_csv(config.GROUND_TRUTH_FILE_NAME)
             plot_filename = log_filename.replace(".csv", "_analysis_plot.png")
@@ -134,7 +150,7 @@ def run_bo_loop(config):
                 plot_filename = log_filename.replace(".csv", "_convergence_plot.png")
                 plot_convergence(log_df, plot_filename, config)
     elif num_dims > 2: # 3D 이상이고 GT가 없을 땐 수렴 플롯이라도 그림
-        print("\n--- Plotting Convergence (no Ground Truth) ---")
+        #print("\n--- Plotting Convergence (no Ground Truth) ---")
         plot_filename = log_filename.replace(".csv", "_convergence_plot.png")
         plot_convergence(log_df, plot_filename, config)
     else:
@@ -152,7 +168,7 @@ if __name__ == "__main__":
 
     try:
         config_module = importlib.import_module(args.config)
-        print(f"Successfully loaded configuration: {args.config}")
+        #print(f"Successfully loaded configuration: {args.config}")
     except ImportError:
         print(f"Error: Could not import a configuration file named '{args.config}'. Please check the path.")
         exit()
@@ -168,7 +184,8 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
 
-    #finally:
+    finally:
+        cleanup_result_files()
     #    if problem_class_ref and hasattr(problem_class_ref, 'cleanup'):
     #        problem_class_ref.cleanup()
     print("\nOptimization finished.")

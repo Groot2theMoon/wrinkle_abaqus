@@ -46,7 +46,12 @@ class AbaqusParabolicWrinkle:
             
             depth = X_design_unnorm[0, 0].item()
             
-            job_name = f"job_alpha{depth:.3f}_fid{fidelity_bo:.0f}"
+            # 원본 job_name을 만들고, '.'을 'p'로 치환하여 Abaqus에 전달할 유효한 이름을 만듭니다.
+            base_job_name = f"job_alpha{depth:.3f}_fid{fidelity_bo:.0f}"
+            sanitized_job_name = base_job_name.replace('.', 'p')
+            
+            # 결과 파일 경로와 Abaqus에 전달할 job_name 모두 정제된 이름을 사용합니다.
+            job_name = sanitized_job_name 
             result_file_path = os.path.join(self.config.ABAQUS_WORKING_DIR, f"result_{job_name}.txt")
             
             print(f"  > Evaluating: depth={depth:.3f}, fid={fidelity_bo:.1f}...")
