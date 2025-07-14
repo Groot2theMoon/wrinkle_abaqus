@@ -8,7 +8,7 @@ import time
 
 def create_base_model(mdb, depth, fidelity):
     """
-    지정된 depth와 fidelity로 Abaqus 파트, 재료, 섹션, 메쉬를 생성합니다.
+    지정된 depth와 fidelity로 Abaqus 파트, 재료, 섹션, 메쉬 생성
     """
     from abaqusConstants import (THREE_D, DEFORMABLE_BODY, ON, FINER, UNIFORM, 
                                   MIDDLE_SURFACE, FROM_SECTION, NEO_HOOKE)

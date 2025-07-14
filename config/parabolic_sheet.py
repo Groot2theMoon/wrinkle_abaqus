@@ -23,7 +23,7 @@ NUM_RESTARTS = 10
 RAW_SAMPLES = 256       
 
 # ----------------- 설계 변수 및 경계 -----------------
-DEPTH_BOUNDS = [0.001, 0.1]
+DEPTH_BOUNDS = [0.001, 0.005]
 
 NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
 
