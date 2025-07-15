@@ -1,0 +1,40 @@
+import torch
+import os
+
+# ----------------- 실험 기본 설정 -----------------
+EXPERIMENT_NAME = "Parabolic_Wrinkle_1D_v1"
+SIMULATION_TOOL = "abaqus"
+PROBLEM_CLASS_PATH = "abaqus_interface.parabolic_sheet.AbaqusParabolicWrinkle"
+
+# ----------------- 아바쿠스 관련 설정 -----------------
+ABAQUS_EXE_PATH = r"C:\SIMULIA\Commands\abaqus.bat"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ABAQUS_SCRIPT_FOLDER = PROJECT_ROOT
+ABAQUS_WORKING_DIR = PROJECT_ROOT
+ABAQUS_SCRIPT_NAME = "aba_run_parabolic2.py" 
+
+# ----------------- BO  -----------------
+N_LF_INIT = 6
+N_HF_INIT = 3
+NUM_BO_ITERATIONS = 15
+
+BATCH_SIZE = 1          
+NUM_RESTARTS = 20      
+RAW_SAMPLES = 1024    
+
+# ----------------- 설계 변수 및 경계 -----------------
+DEPTH_BOUNDS = [0.001, 0.025]
+
+NORMALIZED_BOUNDS = torch.tensor([[0.0, 1.0], [0.0, 1.0]], dtype=torch.double)
+# ----------------- 충실도 -----------------
+TARGET_FIDELITY_VALUE = 1.0 
+
+FALLBACK_COST_LF = 30.0    
+FALLBACK_COST_HF = 150.0   
+
+# ----------------- 분석용 Ground Truth 파일 -----------------
+GROUND_TRUTH_FILE_NAME = "ground_truth_parabolic_1d.csv"
+
+GRID_RESOLUTION = 20  # 그리드 해상도
+
+NUM_FANTASIES = 128

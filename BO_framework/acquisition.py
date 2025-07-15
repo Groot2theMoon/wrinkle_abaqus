@@ -54,7 +54,7 @@ def find_best_candidate_with_mfkg(model, train_X, train_Y, cost_model, config, p
     )
     return candidates, acq_value
 
-
+"""
 def find_best_candidate_mfei(
     model, train_X, train_Y, cost_model, config, problem
 ):
@@ -103,4 +103,4 @@ def find_best_candidate_mfei(
     # 3. LF와 HF의 가성비를 비교하여 최종 후보 선택
     best_idx = torch.stack(values_list).argmax()
     best_candidate = candidates_list[best_idx]
-    return best_candidate, values_list[best_idx]
+    return best_candidate, values_list[best_idx]"""

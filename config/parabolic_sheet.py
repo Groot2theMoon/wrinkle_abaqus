@@ -14,13 +14,13 @@ ABAQUS_WORKING_DIR = PROJECT_ROOT
 ABAQUS_SCRIPT_NAME = "aba_run_parabolic2.py" 
 
 # ----------------- BO  -----------------
-N_LF_INIT = 10
-N_HF_INIT = 5
+N_LF_INIT = 6
+N_HF_INIT = 3
 NUM_BO_ITERATIONS = 15
 
 BATCH_SIZE = 1          
-NUM_RESTARTS = 10      
-RAW_SAMPLES = 512    
+NUM_RESTARTS = 20      
+RAW_SAMPLES = 1024    
 
 # ----------------- 설계 변수 및 경계 -----------------
 DEPTH_BOUNDS = [0.001, 0.025]

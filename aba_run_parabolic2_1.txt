@@ -21,14 +21,13 @@ ANALYSIS_PARAMETERS = {
     "SHEET_THICKNESS": 0.0001,
     "MATERIAL_PROPS": ((3e6, 0.0),),
     "APPLIED_DISPLACEMENT_BUCKLE": 0.0025,
-    "APPLIED_DISPLACEMENT_RIKS": 0.0025,
+    "APPLIED_DISPLACEMENT_RIKS": 0.005,
     "MESH_SIZE_PRE_BUCKLE": 0.002,
     "MESH_SIZE_POST_BUCKLE": 0.001,
-    "INITIAL_INCREMENT_SIZE": 1.0,
+    "INITIAL_INCREMENT_SIZE": 0.1,
     "RIKS_MAX_INCREMENTS": 200,
     "RIKS_INITIAL_ARC_INC": 0.01,
     "ABAQUS_TIMEOUT_SECONDS": 1000,
-    "RIKS_MAX_ARC_INC":1.0
 }
 
 def cleanup_abaqus_files(base_job_name):
@@ -36,7 +35,7 @@ def cleanup_abaqus_files(base_job_name):
     files_to_delete = glob.glob(f"{base_job_name}*")
     
     for f_path in files_to_delete:
-        if not f_path.endswith(('.py', '.csv', '.txt', '.inp', '.odb')):
+        if not f_path.endswith(('.py', '.csv', '.txt')):
             try:
                 os.remove(f_path)
             except OSError as e:
@@ -108,7 +107,7 @@ def run_linear_buckle_analysis(job_name, depth):
 def run_post_buckle_analysis(job_name, depth, buckle_job_name):
     model = create_base_model(model_name='Post_Model', depth=depth, mesh_size=ANALYSIS_PARAMETERS["MESH_SIZE_POST_BUCKLE"])
     instance = model.rootAssembly.instances['SheetInst']
-    model.StaticRiksStep(name='Riks', previous='Initial', nlgeom=ON, maxNumInc=ANALYSIS_PARAMETERS["RIKS_MAX_INCREMENTS"], initialArcInc=ANALYSIS_PARAMETERS["RIKS_INITIAL_ARC_INC"], maxArcInc=ANALYSIS_PARAMETERS["RIKS_MAX_ARC_INC"])
+    model.StaticRiksStep(name='Riks', previous='Initial', nlgeom=ON, maxNumInc=ANALYSIS_PARAMETERS["RIKS_MAX_INCREMENTS"], initialArcInc=ANALYSIS_PARAMETERS["RIKS_INITIAL_ARC_INC"])
     model.EncastreBC(name='FixLeft', createStepName='Initial', region=instance.sets['Fix_Edges'])
     model.DisplacementBC(name='Riks_Disp', createStepName='Riks', region=instance.sets['Disp_Edges'], u1=ANALYSIS_PARAMETERS["APPLIED_DISPLACEMENT_RIKS"], u2=0, u3=0, ur1=0, ur2=0, ur3=0)
     temp_inp_job_name = f"{job_name}_temp_for_inp"
@@ -118,7 +117,7 @@ def run_post_buckle_analysis(job_name, depth, buckle_job_name):
     with open(inp_path, 'w') as f_out:
         for line in lines:
             if line.strip().lower().startswith('*step'):
-                imperfection_scale = 0.01 #ANALYSIS_PARAMETERS["SHEET_THICKNESS"] * 0.05
+                imperfection_scale = ANALYSIS_PARAMETERS["SHEET_THICKNESS"] * 0.05
                 imperfection_string = f"*IMPERFECTION, FILE={buckle_job_name}, STEP=1\n1, {imperfection_scale}\n"
                 f_out.write(imperfection_string)
             f_out.write(line)
@@ -164,7 +163,7 @@ def main():
         print(f"CRITICAL ERROR during analysis for {args.job_name}: {e}\n{traceback.format_exc()}")
     finally:
         write_result_to_txt(args.job_name, result_value)
-        cleanup_abaqus_files(args.job_name)
+        #cleanup_abaqus_files(args.job_name)
         print(f"--- Analysis for {args.job_name} Finished. Result: {result_value} ---")
 
 if __name__ == '__main__':

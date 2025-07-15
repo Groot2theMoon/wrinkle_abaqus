@@ -2,6 +2,7 @@ import os
 import torch
 import subprocess
 import time
+import numpy as np
 
 class AbaqusParabolicWrinkle:
     def __init__(self, config, negate=True):
@@ -74,7 +75,18 @@ class AbaqusParabolicWrinkle:
 
                 with open(result_file_path, 'r') as f:
                     output_value = float(f.readline().strip())
-                objectives[i, 0] = output_value
+            
+                epsilon = 1e-12
+            
+                if abs(fidelity_bo - 1.0) < 1e-6: # High Fidelity (Post-buckle amplitude)
+                # 목표: y_HF 최소화 -> -log(y_HF) 최대화
+                # y_HF는 작은 양수 -> log(y_HF)는 음수 -> -log(y_HF)는 양수
+                    objectives[i, 0] = -np.log(output_value + epsilon)
+                else: # Low Fidelity (Linear buckle factor)
+                # 가설: y_LF가 클수록 y_HF가 작다 (우리의 목표에 부합)
+                # 목표: y_LF를 크게 만드는 방향으로 탐색 -> log(y_LF) 최대화
+                # y_LF는 일반적으로 1보다 큰 값이므로 log(y_LF)는 양수
+                    objectives[i, 0] = np.log(output_value + epsilon)
 
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError, ValueError) as e:
                 print(f"    ! ABAQUS call failed for {job_name}: {e}")
@@ -91,9 +103,10 @@ class AbaqusParabolicWrinkle:
         successful_mask = ~nan_mask.squeeze(-1) # nan이 아닌, 성공한 결과만
         is_hf = (torch.abs(X_full_norm[:, self.fidelity_dim_idx] - self.config.TARGET_FIDELITY_VALUE) < 1e-6)
         
-        # 성공했고, HF이고, negate=True인 경우에만 부호를 바꿈
-        if self.negate:
-            mask_to_negate = successful_mask & is_hf
-            objectives[mask_to_negate] = -objectives[mask_to_negate]
-            
+        
+        #if self.negate:
+            #mask_to_negate = successful_mask & is_hf
+            #objectives[mask_to_negate] = -objectives[mask_to_negate]
+            #objectives[successful_mask] = -objectives[successful_mask]
+
         return objectives, costs
