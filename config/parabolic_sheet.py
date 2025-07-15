@@ -20,22 +20,21 @@ NUM_BO_ITERATIONS = 15
 
 BATCH_SIZE = 1          
 NUM_RESTARTS = 10      
-RAW_SAMPLES = 256       
+RAW_SAMPLES = 512    
 
 # ----------------- 설계 변수 및 경계 -----------------
-DEPTH_BOUNDS = [0.001, 0.05]
+DEPTH_BOUNDS = [0.001, 0.025]
 
-NORMALIZED_BOUNDS = torch.tensor([[0.0] * 3, [1.0] * 3], dtype=torch.double)
-
+NORMALIZED_BOUNDS = torch.tensor([[0.0, 1.0], [0.0, 1.0]], dtype=torch.double)
 # ----------------- 충실도 -----------------
 TARGET_FIDELITY_VALUE = 1.0 
 
-FALLBACK_COST_LF = 15.0    
+FALLBACK_COST_LF = 30.0    
 FALLBACK_COST_HF = 150.0   
 
 # ----------------- 분석용 Ground Truth 파일 -----------------
 GROUND_TRUTH_FILE_NAME = "ground_truth_parabolic_1d.csv"
 
-GRID_RESOLUTION = 10  # 그리드 해상도
+GRID_RESOLUTION = 20  # 그리드 해상도
 
 NUM_FANTASIES = 128

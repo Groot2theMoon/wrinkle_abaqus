@@ -3,7 +3,8 @@ from botorch.acquisition.knowledge_gradient import qMultiFidelityKnowledgeGradie
 from botorch.acquisition.utils import project_to_target_fidelity
 from botorch.acquisition.logei import qLogExpectedImprovement
 from botorch.acquisition.fixed_feature import FixedFeatureAcquisitionFunction
-from botorch.optim.optimize import optimize_acqf
+from botorch.acquisition.cost_aware import InverseCostWeightedUtility
+from botorch.optim.optimize import optimize_acqf_mixed
 
 def mfkg_acq_f(model, train_X, train_Y, cost_utility, config, fidelity_idx):
     
@@ -21,9 +22,7 @@ def mfkg_acq_f(model, train_X, train_Y, cost_utility, config, fidelity_idx):
         project=project_func
     )
 
-def find_best_candidate_with_mfkg(
-    model, train_X, train_Y, cost_model, config, problem
-):
+def find_best_candidate_with_mfkg(model, train_X, train_Y, cost_model, config, problem):
     def project_func(X):
         return project_to_target_fidelity(
             X=X, target_fidelities={problem.fidelity_dim_idx: config.TARGET_FIDELITY_VALUE}
@@ -32,56 +31,29 @@ def find_best_candidate_with_mfkg(
     hf_mask = (train_X[:, problem.fidelity_dim_idx] == config.TARGET_FIDELITY_VALUE)
     best_f = train_Y[hf_mask].max() if hf_mask.any() else -torch.inf
 
-    # 비용을 고려하지 않는 "순수한" MF-KG
+    cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
+
     acqf_kg = qMultiFidelityKnowledgeGradient(
         model=model,
-        num_fantasies=config.NUM_FANTASIES, # config 파일에 정의 필요
+        num_fantasies=config.NUM_FANTASIES,
         current_value=best_f,
+        cost_aware_utility=cost_aware_utility,
         project=project_func,
     )
 
-    candidates_list = []
-    values_list = []
-    
-    fixed_features_options = [{problem.fidelity_dim_idx: 0.0}, {problem.fidelity_dim_idx: 1.0}]
+    candidates, acq_value = optimize_acqf_mixed(
+        acq_function=acqf_kg,
+        bounds=config.NORMALIZED_BOUNDS, # 전체 바운드 (e.g., [[0,0], [1,1]])
+        q=config.BATCH_SIZE,
+        num_restarts=config.NUM_RESTARTS,
+        raw_samples=config.RAW_SAMPLES,
+        fixed_features_list=[
+            {problem.fidelity_dim_idx: 0.0}, 
+            {problem.fidelity_dim_idx: 1.0}
+        ],
+    )
+    return candidates, acq_value
 
-    for fixed_features in fixed_features_options:
-        fidelity_value = list(fixed_features.values())[0]
-        
-        acqf_fixed_fidelity = FixedFeatureAcquisitionFunction(
-            acq_function=acqf_kg,
-            d=problem.dim,
-            columns=[problem.fidelity_dim_idx],
-            values=[fidelity_value]
-        )
-
-        # 2-2. `optimize_acqf`로 설계 변수 공간에 대해 최적화
-        candidate_design, acq_value = optimize_acqf(
-            acq_function=acqf_fixed_fidelity,
-            bounds=config.NORMALIZED_BOUNDS[:, :problem.num_design_vars],
-            q=config.BATCH_SIZE,
-            num_restarts=config.NUM_RESTARTS,
-            raw_samples=config.RAW_SAMPLES,
-        )
-
-        # 2-3. 전체 후보점(설계 변수 + 충실도) 복원
-        candidate_full = torch.cat(
-            [candidate_design, torch.tensor([[fidelity_value]], dtype=train_X.dtype, device=train_X.device)], 
-            dim=-1
-        )
-
-        # 2-4. 비용 계산 및 가성비(acq_value / cost) 계산
-        cost = cost_model(candidate_full).squeeze()
-        cost_weighted_value = acq_value / (cost + 1e-9)
-
-        candidates_list.append(candidate_full)
-        values_list.append(cost_weighted_value)
-
-    # 3. LF와 HF의 가성비를 비교하여 최종 후보 선택
-    best_idx = torch.stack(values_list).argmax()
-    best_candidate = candidates_list[best_idx]
-    
-    return best_candidate, values_list[best_idx]
 
 def find_best_candidate_mfei(
     model, train_X, train_Y, cost_model, config, problem

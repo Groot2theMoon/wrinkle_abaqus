@@ -12,7 +12,7 @@ from botorch.models.cost import AffineFidelityCostModel
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
 from BO_framework.acquisition import find_best_candidate_mfei
-#from BO_framework.acquisition import find_best_candidate_with_mfkg
+from BO_framework.acquisition import find_best_candidate_with_mfkg
 from utils.plotting import plot_bo_results, plot_convergence
 
 tkwargs = {
@@ -73,13 +73,11 @@ def run_bo_loop(config):
         obj_act = -y_p if problem.negate and is_hf else y_p
         log_data.append(["Initial", fid_bo, des_act[0], y_p, obj_act, t_p])
     
-    # 비용 모델 설정
     lf_costs = train_costs[train_X[:, problem.fidelity_dim_idx] == 0.0]
     hf_costs = train_costs[train_X[:, problem.fidelity_dim_idx] == 1.0]
     cost_lf = lf_costs.mean().item() if len(lf_costs) > 0 else config.FALLBACK_COST_LF
     cost_hf = hf_costs.mean().item() if len(hf_costs) > 0 else config.FALLBACK_COST_HF
     cost_model = AffineFidelityCostModel(fidelity_weights={problem.fidelity_dim_idx: cost_hf - cost_lf}, fixed_cost=cost_lf)
-    #cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
     
     print(f"\n--- Starting MFBO Loop ({config.NUM_BO_ITERATIONS} iterations) ---")
     for iteration in range(config.NUM_BO_ITERATIONS):
@@ -88,22 +86,22 @@ def run_bo_loop(config):
             print("Model initialization failed. Stopping.")
             break
         
-        candidates, acq_value = find_best_candidate_mfei(
+# """        candidates, acq_value = find_best_candidate_mfei(
+#     model=model,
+#     train_X=train_X,
+#     train_Y=train_Y,
+#     cost_model=cost_model,
+#     config=config,
+#     problem=problem
+# )"""
+        candidates, _ = find_best_candidate_with_mfkg(
             model=model,
             train_X=train_X,
             train_Y=train_Y,
             cost_model=cost_model,
             config=config,
             problem=problem
-        )
-#        candidates, _ = find_best_candidate_with_mfkg(
-#            model=model,
-#            train_X=train_X,
-#            train_Y=train_Y,
-#            cost_model=cost_model,
-#            config=config,
-#            problem=problem
-#        )
+    )
         new_Y, new_costs = problem(candidates)
         if new_Y.ndim == 1:
             new_Y = new_Y.unsqueeze(-1)
