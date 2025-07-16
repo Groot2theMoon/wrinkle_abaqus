@@ -112,10 +112,11 @@ def run_linear_buckle_analysis(job_name, depth):
             odb.close()
         except Exception: print(f"Warning: ODB access error for {job_name}.")
     
-    if depth > 0.001:
-        eigenvalue = eigenvalue/5
-
-    return np.log(eigenvalue+1e-12) if eigenvalue > 0 else float('nan')
+    
+    result = PRE_DISP + ANALYSIS_PARAMETERS["APPLIED_DISPLACEMENT_BUCKLE"] * eigenvalue
+    
+    return result
+    #return np.log(result + 1e-12) 
 
 def run_post_buckle_analysis(job_name, depth, buckle_job_name):
     model = create_base_model(model_name='Post_Model', depth=depth, mesh_size=ANALYSIS_PARAMETERS["MESH_SIZE_POST_BUCKLE"])
@@ -173,7 +174,7 @@ def main():
             else:
                 print(f"Pre-buckle analysis failed. Skipping post-buckle analysis.")
     except Exception as e:
-        print(f"CRITICAL ERROR during analysis for {args.job_name}: {e}\n{traceback.format_exc()}")
+        print(f"ERROR during analysis for {args.job_name}: {e}\n{traceback.format_exc()}")
     finally:
         write_result_to_txt(args.job_name, result_value)
         cleanup_abaqus_files(args.job_name)
