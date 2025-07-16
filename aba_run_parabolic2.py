@@ -5,6 +5,7 @@ import traceback
 import time
 import subprocess
 import glob
+import numpy as np
 
 try:
     from abaqus import mdb
@@ -26,9 +27,10 @@ ANALYSIS_PARAMETERS = {
     "MESH_SIZE_POST_BUCKLE": 0.001,
     "INITIAL_INCREMENT_SIZE": 1.0,
     "RIKS_MAX_INCREMENTS": 200,
-    "RIKS_INITIAL_ARC_INC": 0.01,
+    "RIKS_INITIAL_ARC_INC": 1,
     "ABAQUS_TIMEOUT_SECONDS": 1000,
     "RIKS_MAX_ARC_INC":1.0
+    #"PRE_DISP" : 0.0001
 }
 
 def cleanup_abaqus_files(base_job_name):
@@ -36,7 +38,7 @@ def cleanup_abaqus_files(base_job_name):
     files_to_delete = glob.glob(f"{base_job_name}*")
     
     for f_path in files_to_delete:
-        if not f_path.endswith(('.py', '.csv', '.txt', '.inp', '.odb')):
+        if not f_path.endswith(('.py', '.csv', '.txt', '.inp', '.odb', '.msg')):
             try:
                 os.remove(f_path)
             except OSError as e:
@@ -84,12 +86,18 @@ def create_base_model(model_name, depth, mesh_size):
     return model
 
 def run_linear_buckle_analysis(job_name, depth):
+
+    if depth > 0.01:
+        PRE_DISP = 0.000025
+    else:
+        PRE_DISP = 0.000125
+
     model = create_base_model(model_name='Buckle_Model', depth=depth, mesh_size=ANALYSIS_PARAMETERS["MESH_SIZE_PRE_BUCKLE"])
     instance = model.rootAssembly.instances['SheetInst']
     model.StaticStep(name='Preload', previous='Initial', nlgeom=ON, initialInc=ANALYSIS_PARAMETERS["INITIAL_INCREMENT_SIZE"])
     model.BuckleStep(name='Buckle', previous='Preload', numEigen=1, maxEigen=100.0, eigensolver=LANCZOS, minEigen=0.0, blockSize=DEFAULT, maxBlocks=DEFAULT)
     model.EncastreBC(name='FixLeft', createStepName='Initial', region=instance.sets['Fix_Edges'])
-    bc = model.DisplacementBC(name='LoadBC', createStepName='Preload', region=instance.sets['Disp_Edges'], u1=0.000025, u2=0, u3=0, ur1=0, ur2=0, ur3=0)
+    bc = model.DisplacementBC(name='LoadBC', createStepName='Preload', region=instance.sets['Disp_Edges'], u1=PRE_DISP, u2=0, u3=0, ur1=0, ur2=0, ur3=0)
     bc.setValuesInStep(stepName='Buckle', u1=ANALYSIS_PARAMETERS["APPLIED_DISPLACEMENT_BUCKLE"])
     job = mdb.Job(name=job_name, model=model.name)
     job.submit(consistencyChecking=OFF); job.waitForCompletion()
@@ -103,7 +111,11 @@ def run_linear_buckle_analysis(job_name, depth):
                 eigenvalue = float(description.split('=')[1].strip())
             odb.close()
         except Exception: print(f"Warning: ODB access error for {job_name}.")
-    return eigenvalue
+    
+    if depth > 0.001:
+        eigenvalue = eigenvalue/5
+
+    return np.log(eigenvalue+1e-12) if eigenvalue > 0 else float('nan')
 
 def run_post_buckle_analysis(job_name, depth, buckle_job_name):
     model = create_base_model(model_name='Post_Model', depth=depth, mesh_size=ANALYSIS_PARAMETERS["MESH_SIZE_POST_BUCKLE"])
@@ -118,8 +130,8 @@ def run_post_buckle_analysis(job_name, depth, buckle_job_name):
     with open(inp_path, 'w') as f_out:
         for line in lines:
             if line.strip().lower().startswith('*step'):
-                imperfection_scale = 0.01 #ANALYSIS_PARAMETERS["SHEET_THICKNESS"] * 0.05
-                imperfection_string = f"*IMPERFECTION, FILE={buckle_job_name}, STEP=1\n1, {imperfection_scale}\n"
+                imperfection_scale = 0.001 #ANALYSIS_PARAMETERS["SHEET_THICKNESS"] * 0.05
+                imperfection_string = f"*IMPERFECTION, FILE={buckle_job_name}, STEP=2\n1, {imperfection_scale}\n"
                 f_out.write(imperfection_string)
             f_out.write(line)
     command = f"abaqus job={job_name} input={inp_path} interactive"

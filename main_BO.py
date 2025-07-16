@@ -11,7 +11,7 @@ from botorch.models.cost import AffineFidelityCostModel
 #from botorch.optim.optimize import optimize_acqf_mixed
 from BO_framework.initial_design import generate_initial_data_with_LHS
 from BO_framework.models import initialize_gp_model, get_final_posterior_mean
-from BO_framework.acquisition import find_best_candidate_mfei
+#from BO_framework.acquisition import find_best_candidate_mfei
 from BO_framework.acquisition import find_best_candidate_with_mfkg
 from utils.plotting import plot_bo_results, plot_convergence
 

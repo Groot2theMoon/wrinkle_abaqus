@@ -76,17 +76,18 @@ class AbaqusParabolicWrinkle:
                 with open(result_file_path, 'r') as f:
                     output_value = float(f.readline().strip())
             
-                epsilon = 1e-12
+                #epsilon = 1e-12
             
-                if abs(fidelity_bo - 1.0) < 1e-6: # High Fidelity (Post-buckle amplitude)
+                #if abs(fidelity_bo - 1.0) < 1e-6: # High Fidelity (Post-buckle amplitude)
                 # 목표: y_HF 최소화 -> -log(y_HF) 최대화
                 # y_HF는 작은 양수 -> log(y_HF)는 음수 -> -log(y_HF)는 양수
-                    objectives[i, 0] = -np.log(output_value + epsilon)
-                else: # Low Fidelity (Linear buckle factor)
+                    #objectives[i, 0] = -np.log(output_value + epsilon)
+                #else: # Low Fidelity (Linear buckle factor)
                 # 가설: y_LF가 클수록 y_HF가 작다 (우리의 목표에 부합)
                 # 목표: y_LF를 크게 만드는 방향으로 탐색 -> log(y_LF) 최대화
                 # y_LF는 일반적으로 1보다 큰 값이므로 log(y_LF)는 양수
-                    objectives[i, 0] = np.log(output_value + epsilon)
+                    #objectives[i, 0] = np.log(output_value + epsilon)
+                objectives[i, 0] = output_value
 
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError, ValueError) as e:
                 print(f"    ! ABAQUS call failed for {job_name}: {e}")
